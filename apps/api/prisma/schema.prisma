@@ -22,14 +22,48 @@ enum WorkspaceVisibility {
 }
 
 model User {
-  id           String           @id @default(cuid())
-  email        String           @unique
-  name         String?
-  passwordHash String?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  memberships  TeamMembership[]
-  history      RequestHistory[]
+  id            String              @id @default(cuid())
+  email         String              @unique
+  name          String?
+  passwordHash  String?
+  emailVerified DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  memberships   TeamMembership[]
+  history       RequestHistory[]
+  refreshTokens RefreshToken[]
+  authTokens    AuthToken[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  // SHA-256 of the opaque token; the raw value lives only in the client cookie.
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+enum AuthTokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+model AuthToken {
+  id        String        @id @default(cuid())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String        @unique
+  type      AuthTokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId])
 }
 
 model Team {

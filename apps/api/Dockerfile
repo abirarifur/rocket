@@ -15,5 +15,6 @@ RUN pnpm --filter @rocket/types build \
 FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=build /app /app
+RUN chmod +x /app/apps/api/docker-entrypoint.sh
 EXPOSE 4000
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["/app/apps/api/docker-entrypoint.sh"]

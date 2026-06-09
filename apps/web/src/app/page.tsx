@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { apiHealth } from '@/lib/api';
 
 export default async function HomePage() {
@@ -15,8 +16,36 @@ export default async function HomePage() {
         Rocket <span style={{ color: 'var(--accent)' }}>🚀</span>
       </h1>
       <p style={{ color: 'var(--muted)', marginTop: '0.5rem' }}>
-        A Postman-inspired API platform. Phase 0 scaffold is live.
+        A Postman-inspired API platform. Auth & tenancy are live (Phase 1).
       </p>
+
+      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+        <Link
+          href="/register"
+          style={{
+            padding: '0.55rem 1.1rem',
+            background: 'var(--accent)',
+            color: '#fff',
+            borderRadius: 8,
+            textDecoration: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Get started
+        </Link>
+        <Link
+          href="/login"
+          style={{
+            padding: '0.55rem 1.1rem',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
+            borderRadius: 8,
+            textDecoration: 'none',
+          }}
+        >
+          Sign in
+        </Link>
+      </div>
 
       <section
         style={{

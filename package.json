@@ -16,7 +16,10 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "infra:up": "docker compose -f docker-compose.yml up -d",
     "infra:down": "docker compose -f docker-compose.yml down",
-    "infra:logs": "docker compose -f docker-compose.yml logs -f"
+    "infra:logs": "docker compose -f docker-compose.yml logs -f",
+    "stack:up": "docker compose -f docker-compose.full.yml up --build -d",
+    "stack:down": "docker compose -f docker-compose.full.yml down",
+    "stack:logs": "docker compose -f docker-compose.full.yml logs -f"
   },
   "devDependencies": {
     "turbo": "^2.5.5",
