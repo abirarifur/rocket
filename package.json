@@ -1,0 +1,26 @@
+{
+  "name": "rocket",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Rocket — a Postman-inspired API platform (web).",
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "infra:up": "docker compose -f docker-compose.yml up -d",
+    "infra:down": "docker compose -f docker-compose.yml down",
+    "infra:logs": "docker compose -f docker-compose.yml logs -f"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.5",
+    "typescript": "^5.7.3",
+    "prettier": "^3.4.2"
+  }
+}

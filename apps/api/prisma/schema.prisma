@@ -1,0 +1,112 @@
+// Rocket data model. Multi-tenant: Team is the top-level tenant boundary.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum WorkspaceVisibility {
+  PERSONAL
+  TEAM
+  PUBLIC
+}
+
+model User {
+  id           String           @id @default(cuid())
+  email        String           @unique
+  name         String?
+  passwordHash String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  memberships  TeamMembership[]
+  history      RequestHistory[]
+}
+
+model Team {
+  id          String           @id @default(cuid())
+  name        String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  memberships TeamMembership[]
+  workspaces  Workspace[]
+}
+
+model TeamMembership {
+  id     String   @id @default(cuid())
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  team   Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId String
+  role   TeamRole @default(VIEWER)
+
+  @@unique([userId, teamId])
+  @@index([teamId])
+}
+
+model Workspace {
+  id           String              @id @default(cuid())
+  team         Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId       String
+  name         String
+  visibility   WorkspaceVisibility @default(PERSONAL)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  collections  Collection[]
+  environments Environment[]
+
+  @@index([teamId])
+}
+
+model Collection {
+  id          String     @id @default(cuid())
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+  name        String
+  description String?
+  // Variables and the folder/request tree are stored as JSON for flexibility.
+  variables   Json       @default("[]")
+  tree        Json       @default("[]")
+  forkOf      Collection? @relation("Fork", fields: [forkOfId], references: [id])
+  forkOfId    String?
+  forks       Collection[] @relation("Fork")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([workspaceId])
+}
+
+model Environment {
+  id          String    @id @default(cuid())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+  name        String
+  variables   Json      @default("[]")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
+}
+
+model RequestHistory {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  workspaceId String
+  // Snapshot of the sent request and response metadata.
+  request     Json
+  responseMeta Json
+  executedAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([workspaceId])
+}
