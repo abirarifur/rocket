@@ -8,10 +8,12 @@ import { Sidebar } from '@/components/Sidebar';
 import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { EnvironmentBar } from '@/components/EnvironmentBar';
+import { WorkspaceBar } from '@/components/WorkspaceBar';
+import { MembersBar } from '@/components/MembersBar';
 
 export default function AppPage() {
   const router = useRouter();
-  const { init, workspaceName } = useApp();
+  const { init } = useApp();
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
 
@@ -22,9 +24,7 @@ export default function AppPage() {
         return;
       }
       setEmail(me.email);
-      if (me.defaultWorkspace) {
-        await init(me.defaultWorkspace.id, me.defaultWorkspace.name);
-      }
+      await init(me.defaultWorkspace?.id);
       setReady(true);
     });
   }, [init, router]);
@@ -47,9 +47,10 @@ export default function AppPage() {
         <strong>
           Rocket <span style={{ color: 'var(--accent)' }}>🚀</span>
         </strong>
-        <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{workspaceName}</span>
+        <WorkspaceBar />
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
           <EnvironmentBar />
+          <MembersBar />
           <span style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>{email}</span>
           <button
             onClick={async () => {

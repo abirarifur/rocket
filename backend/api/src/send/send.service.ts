@@ -70,12 +70,12 @@ export class SendService {
     let environmentVars: Variable[] = [];
 
     if (dto.collectionId) {
-      const col = await this.tenancy.assertCollectionAccess(userId, dto.collectionId);
-      collectionVars = this.decrypt(col.variables as Variable[]);
+      const { collection } = await this.tenancy.assertCollectionAccess(userId, dto.collectionId);
+      collectionVars = this.decrypt(collection.variables as Variable[]);
     }
     if (dto.environmentId) {
-      const env = await this.tenancy.assertEnvironmentAccess(userId, dto.environmentId);
-      environmentVars = this.decrypt(env.variables as Variable[]);
+      const { environment } = await this.tenancy.assertEnvironmentAccess(userId, dto.environmentId);
+      environmentVars = this.decrypt(environment.variables as Variable[]);
     }
     return resolveVariableMap(collectionVars, environmentVars);
   }

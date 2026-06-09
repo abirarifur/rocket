@@ -4,6 +4,8 @@ import { create } from 'zustand';
 import type { CollectionNode, RequestDefinition, Variable } from '@rocket/types';
 import * as api from '@/lib/app-api';
 import * as envApi from '@/lib/env-api';
+import { canEdit, type Role } from '@/lib/teams-api';
+import * as teamsApi from '@/lib/teams-api';
 import {
   addNode,
   emptyFolder,
@@ -19,6 +21,9 @@ type Tree = CollectionNode[];
 interface AppState {
   workspaceId: string | null;
   workspaceName: string | null;
+  workspaces: api.WorkspaceSummary[];
+  teamId: string | null;
+  role: Role | null;
   collections: api.CollectionSummary[];
   cache: Record<string, api.CollectionFull>; // full collections by id
   expanded: Record<string, boolean>;
@@ -33,7 +38,8 @@ interface AppState {
   environments: envApi.Environment[];
   activeEnvironmentId: string | null;
 
-  init: (workspaceId: string, workspaceName: string) => Promise<void>;
+  init: (workspaceId?: string) => Promise<void>;
+  switchWorkspace: (workspaceId: string) => Promise<void>;
   loadCollection: (id: string) => Promise<void>;
   setActiveEnvironment: (id: string | null) => void;
   createEnvironment: (name: string) => Promise<void>;
@@ -52,6 +58,8 @@ interface AppState {
   rename: (collectionId: string, nodeId: string, name: string) => Promise<void>;
   deleteNode: (collectionId: string, nodeId: string) => Promise<void>;
   deleteCollection: (id: string) => Promise<void>;
+  forkCollection: (collectionId: string, name?: string) => Promise<void>;
+  createTeamWorkspace: (name: string) => Promise<void>;
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -59,6 +67,9 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 export const useApp = create<AppState>((set, get) => ({
   workspaceId: null,
   workspaceName: null,
+  workspaces: [],
+  teamId: null,
+  role: null,
   collections: [],
   cache: {},
   expanded: {},
@@ -71,12 +82,37 @@ export const useApp = create<AppState>((set, get) => ({
   environments: [],
   activeEnvironmentId: null,
 
-  async init(workspaceId, workspaceName) {
+  async init(workspaceId) {
+    const workspaces = await api.listWorkspaces();
+    set({ workspaces });
+    const target = workspaceId
+      ? workspaces.find((w) => w.id === workspaceId)
+      : workspaces[0];
+    if (target) await get().switchWorkspace(target.id);
+  },
+
+  async switchWorkspace(workspaceId) {
+    const summary = get().workspaces.find((w) => w.id === workspaceId);
     const [detail, environments] = await Promise.all([
       api.getWorkspace(workspaceId),
       envApi.listEnvironments(workspaceId),
     ]);
-    set({ workspaceId, workspaceName, collections: detail.collections, environments });
+    set({
+      workspaceId,
+      workspaceName: summary?.name ?? detail.name,
+      teamId: summary?.teamId ?? null,
+      role: (summary?.role as Role) ?? null,
+      collections: detail.collections,
+      environments,
+      // reset per-workspace UI state
+      cache: {},
+      expanded: {},
+      activeCollectionId: null,
+      activeNodeId: null,
+      draft: null,
+      response: null,
+      activeEnvironmentId: null,
+    });
   },
 
   async loadCollection(id) {
@@ -148,8 +184,9 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   async saveActive() {
-    const { activeCollectionId, activeNodeId, draft, cache } = get();
+    const { activeCollectionId, activeNodeId, draft, cache, role } = get();
     if (!activeCollectionId || !activeNodeId || !draft) return;
+    if (!canEdit(role)) return; // viewers can send but not persist edits
     const col = cache[activeCollectionId];
     if (!col) return;
     const tree = updateRequest(col.tree as Tree, activeNodeId, draft);
@@ -221,6 +258,26 @@ export const useApp = create<AppState>((set, get) => ({
       activeCollectionId: get().activeCollectionId === id ? null : get().activeCollectionId,
       draft: get().activeCollectionId === id ? null : get().draft,
     });
+  },
+
+  async forkCollection(collectionId, name) {
+    const { workspaceId } = get();
+    if (!workspaceId) return;
+    const fork = await teamsApi.forkCollection(collectionId, workspaceId, name);
+    set({
+      collections: [
+        ...get().collections,
+        { id: fork.id, name: fork.name, description: null, updatedAt: '' },
+      ],
+    });
+  },
+
+  async createTeamWorkspace(name) {
+    const { teamId } = get();
+    if (!teamId) return;
+    const ws = await teamsApi.createWorkspace(teamId, name, 'TEAM');
+    await get().init(); // refresh workspace list
+    await get().switchWorkspace(ws.id);
   },
 }));
 

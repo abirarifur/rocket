@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { CollectionNode, Variable } from '@rocket/types';
 import { useApp } from '@/store/appStore';
+import { canEdit } from '@/lib/teams-api';
 import { Modal } from './Modal';
 import { VariablesEditor } from './VariablesEditor';
 
@@ -17,7 +18,8 @@ const METHOD_COLOR: Record<string, string> = {
 };
 
 function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectionId: string }) {
-  const { activeNodeId, selectRequest, addRequest, addFolder, rename, deleteNode } = useApp();
+  const { activeNodeId, role, selectRequest, addRequest, rename, deleteNode } = useApp();
+  const editable = canEdit(role);
 
   return (
     <ul style={{ listStyle: 'none', margin: 0, paddingLeft: '0.85rem' }}>
@@ -50,13 +52,15 @@ function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectio
                   {node.request.method}
                 </span>
                 <span style={{ flex: 1, fontSize: '0.85rem' }}>{node.request.name}</span>
-                <RowMenu
-                  onRename={() => {
-                    const name = window.prompt('Rename request', node.request.name);
-                    if (name) void rename(collectionId, node.id, name);
-                  }}
-                  onDelete={() => void deleteNode(collectionId, node.id)}
-                />
+                {editable && (
+                  <RowMenu
+                    onRename={() => {
+                      const name = window.prompt('Rename request', node.request.name);
+                      if (name) void rename(collectionId, node.id, name);
+                    }}
+                    onDelete={() => void deleteNode(collectionId, node.id)}
+                  />
+                )}
               </div>
             </li>
           );
@@ -74,20 +78,24 @@ function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectio
             >
               <span>📁</span>
               <span style={{ flex: 1 }}>{node.name}</span>
-              <button
-                title="Add request"
-                onClick={() => void addRequest(collectionId, node.id)}
-                style={miniBtn}
-              >
-                +
-              </button>
-              <RowMenu
-                onRename={() => {
-                  const name = window.prompt('Rename folder', node.name);
-                  if (name) void rename(collectionId, node.id, name);
-                }}
-                onDelete={() => void deleteNode(collectionId, node.id)}
-              />
+              {editable && (
+                <>
+                  <button
+                    title="Add request"
+                    onClick={() => void addRequest(collectionId, node.id)}
+                    style={miniBtn}
+                  >
+                    +
+                  </button>
+                  <RowMenu
+                    onRename={() => {
+                      const name = window.prompt('Rename folder', node.name);
+                      if (name) void rename(collectionId, node.id, name);
+                    }}
+                    onDelete={() => void deleteNode(collectionId, node.id)}
+                  />
+                </>
+              )}
             </div>
             <TreeNodes nodes={node.children} collectionId={collectionId} />
           </li>
@@ -124,12 +132,15 @@ export function Sidebar() {
     collections,
     expanded,
     cache,
+    role,
     toggleCollection,
     createCollection,
     addRequest,
     addFolder,
     deleteCollection,
+    forkCollection,
   } = useApp();
+  const editable = canEdit(role);
   const [varsFor, setVarsFor] = useState<string | null>(null);
 
   return (
@@ -154,16 +165,18 @@ export function Sidebar() {
         <strong style={{ fontSize: '0.8rem', letterSpacing: 0.4, color: 'var(--muted)' }}>
           COLLECTIONS
         </strong>
-        <button
-          onClick={() => {
-            const name = window.prompt('New collection name', 'My Collection');
-            if (name) void createCollection(name);
-          }}
-          style={{ ...miniBtn, color: 'var(--accent)', fontSize: '1.1rem' }}
-          title="New collection"
-        >
-          +
-        </button>
+        {editable && (
+          <button
+            onClick={() => {
+              const name = window.prompt('New collection name', 'My Collection');
+              if (name) void createCollection(name);
+            }}
+            style={{ ...miniBtn, color: 'var(--accent)', fontSize: '1.1rem' }}
+            title="New collection"
+          >
+            +
+          </button>
+        )}
       </div>
 
       {collections.length === 0 && (
@@ -186,41 +199,56 @@ export function Sidebar() {
           >
             <span style={{ color: 'var(--muted)' }}>{expanded[c.id] ? '▾' : '▸'}</span>
             <strong style={{ flex: 1, fontSize: '0.88rem' }}>{c.name}</strong>
-            <button
-              title="Add request"
-              onClick={(e) => (e.stopPropagation(), addRequest(c.id, null))}
-              style={miniBtn}
-            >
-              +req
-            </button>
-            <button
-              title="Add folder"
-              onClick={(e) => (e.stopPropagation(), addFolder(c.id, null))}
-              style={miniBtn}
-            >
-              +dir
-            </button>
-            <button
-              title="Collection variables"
-              onClick={async (e) => {
-                e.stopPropagation();
-                await useApp.getState().loadCollection(c.id);
-                setVarsFor(c.id);
-              }}
-              style={miniBtn}
-            >
-              {'{}'}
-            </button>
-            <button
-              title="Delete collection"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (window.confirm(`Delete collection "${c.name}"?`)) void deleteCollection(c.id);
-              }}
-              style={miniBtn}
-            >
-              🗑
-            </button>
+            {editable && (
+              <>
+                <button
+                  title="Add request"
+                  onClick={(e) => (e.stopPropagation(), addRequest(c.id, null))}
+                  style={miniBtn}
+                >
+                  +req
+                </button>
+                <button
+                  title="Add folder"
+                  onClick={(e) => (e.stopPropagation(), addFolder(c.id, null))}
+                  style={miniBtn}
+                >
+                  +dir
+                </button>
+                <button
+                  title="Collection variables"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await useApp.getState().loadCollection(c.id);
+                    setVarsFor(c.id);
+                  }}
+                  style={miniBtn}
+                >
+                  {'{}'}
+                </button>
+                <button
+                  title="Fork into this workspace"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const name = window.prompt('Fork name', `${c.name} (fork)`);
+                    if (name) void forkCollection(c.id, name);
+                  }}
+                  style={miniBtn}
+                >
+                  ⑂
+                </button>
+                <button
+                  title="Delete collection"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Delete collection "${c.name}"?`)) void deleteCollection(c.id);
+                  }}
+                  style={miniBtn}
+                >
+                  🗑
+                </button>
+              </>
+            )}
           </div>
           {expanded[c.id] && cache[c.id] && (
             <TreeNodes nodes={cache[c.id]!.tree as CollectionNode[]} collectionId={c.id} />

@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/auth-api';
 import { AuthShell, buttonStyle, inputStyle } from '@/components/AuthShell';
 
-export default function LoginPage() {
+function LoginInner() {
   const router = useRouter();
+  const next = useSearchParams().get('next');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await login(email, password);
-      router.push('/dashboard');
+      router.push(next ?? '/app');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -55,5 +56,13 @@ export default function LoginPage() {
         No account? <Link href="/register">Create one</Link>
       </p>
     </AuthShell>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
   );
 }

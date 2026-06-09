@@ -89,8 +89,25 @@ pnpm stack:up      # build + run the whole project in Docker
 - **Phase 3 — Environments & Variables** ✓ environment CRUD + switcher, collection variables,
   `{{variable}}` interpolation across URL/params/headers/body/auth, scope precedence
   (collection < environment), and **secret variables encrypted at rest** (AES-256-GCM)
+- **Phase 4 — Teams, Workspaces & RBAC** ✓ invite by email + accept, roles
+  (Owner/Admin/Editor/Viewer) enforced at API + UI, team workspaces + switcher, collection
+  forking, and public read-only share links
 
-Next: **Phase 4 — Teams, Shared Workspaces & RBAC**. See the roadmap.
+Next: **Phase 5 — Scripting & Chaining** (sandboxed `pm.*`). See the roadmap.
+
+### Phase 4 endpoints
+
+| Method | Route                                  | Notes                          |
+| ------ | -------------------------------------- | ------------------------------ |
+| GET    | `/api/teams/:id/members`               | list members + roles           |
+| POST   | `/api/teams/:id/invitations`           | invite by email (ADMIN+)       |
+| POST   | `/api/invitations/accept`              | accept via token               |
+| PATCH  | `/api/teams/:id/members/:userId`       | change role (ADMIN+)           |
+| DELETE | `/api/teams/:id/members/:userId`       | remove member (ADMIN+)         |
+| POST   | `/api/teams/:id/workspaces`            | create team workspace (ADMIN+) |
+| PATCH  | `/api/workspaces/:id`                  | rename / set visibility (ADMIN+) |
+| POST   | `/api/collections/:id/fork`            | fork into a workspace          |
+| GET    | `/api/public/workspaces/:id`           | unauthenticated read of PUBLIC workspace |
 
 ### Phase 3 endpoints
 

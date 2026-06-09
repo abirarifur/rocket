@@ -73,6 +73,29 @@ model Team {
   updatedAt   DateTime         @updatedAt
   memberships TeamMembership[]
   workspaces  Workspace[]
+  invitations Invitation[]
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+model Invitation {
+  id          String           @id @default(cuid())
+  team        Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId      String
+  email       String
+  role        TeamRole         @default(VIEWER)
+  tokenHash   String           @unique
+  status      InvitationStatus @default(PENDING)
+  invitedById String
+  expiresAt   DateTime
+  createdAt   DateTime         @default(now())
+
+  @@index([teamId])
+  @@index([email])
 }
 
 model TeamMembership {

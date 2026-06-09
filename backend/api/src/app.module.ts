@@ -10,6 +10,7 @@ import { CryptoModule } from './crypto/crypto.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { CollectionsModule } from './collections/collections.module';
 import { EnvironmentsModule } from './environments/environments.module';
+import { TeamsModule } from './teams/teams.module';
 import { SendModule } from './send/send.module';
 import { RateLimitGuard } from './common/rate-limit.guard';
 
@@ -25,6 +26,7 @@ import { RateLimitGuard } from './common/rate-limit.guard';
     WorkspacesModule,
     CollectionsModule,
     EnvironmentsModule,
+    TeamsModule,
     SendModule,
   ],
   providers: [

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { BodyMode, HttpMethod, RawLanguage } from '@rocket/types';
 import { useApp } from '@/store/appStore';
+import { canEdit } from '@/lib/teams-api';
 import { KeyValueEditor } from './KeyValueEditor';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
@@ -21,8 +22,9 @@ const input: React.CSSProperties = {
 };
 
 export function RequestBuilder() {
-  const { draft, updateDraft, send, sending } = useApp();
+  const { draft, updateDraft, send, sending, role } = useApp();
   const [tab, setTab] = useState<Tab>('params');
+  const readOnly = !canEdit(role);
 
   if (!draft) {
     return (
@@ -34,6 +36,18 @@ export function RequestBuilder() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      {readOnly && (
+        <div
+          style={{
+            background: 'rgba(255,107,53,0.1)',
+            color: 'var(--accent)',
+            fontSize: '0.75rem',
+            padding: '0.3rem 1rem',
+          }}
+        >
+          Read-only — your role can send requests but not save changes.
+        </div>
+      )}
       {/* URL bar */}
       <div style={{ display: 'flex', gap: '0.5rem', padding: '1rem' }}>
         <select

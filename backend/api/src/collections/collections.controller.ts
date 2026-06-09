@@ -9,6 +9,7 @@ import {
   type CreateCollectionDto,
   type UpdateCollectionDto,
 } from './collections.schemas';
+import { ForkCollectionSchema, type ForkCollectionDto } from '../teams/teams.schemas';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -41,5 +42,14 @@ export class CollectionsController {
   @Delete('collections/:id')
   remove(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
     return this.collections.remove(user.sub, id);
+  }
+
+  @Post('collections/:id/fork')
+  fork(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(ForkCollectionSchema)) dto: ForkCollectionDto,
+  ) {
+    return this.collections.fork(user.sub, id, dto.workspaceId, dto.name);
   }
 }
