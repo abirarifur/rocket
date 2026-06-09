@@ -7,6 +7,19 @@ import { canEdit } from '@/lib/teams-api';
 import { Modal } from './Modal';
 import { VariablesEditor } from './VariablesEditor';
 import { RunModal } from './RunModal';
+import { ImportModal } from './ImportModal';
+import { exportCollection } from '@/lib/interop-api';
+
+async function downloadExport(collectionId: string, name: string) {
+  const doc = await exportCollection(collectionId);
+  const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name.replace(/[^\w.-]+/g, '_')}.postman_collection.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const METHOD_COLOR: Record<string, string> = {
   GET: '#3fb950',
@@ -144,6 +157,7 @@ export function Sidebar() {
   const editable = canEdit(role);
   const [varsFor, setVarsFor] = useState<string | null>(null);
   const [runFor, setRunFor] = useState<{ id: string; name: string } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   return (
     <aside
@@ -168,16 +182,25 @@ export function Sidebar() {
           COLLECTIONS
         </strong>
         {editable && (
-          <button
-            onClick={() => {
-              const name = window.prompt('New collection name', 'My Collection');
-              if (name) void createCollection(name);
-            }}
-            style={{ ...miniBtn, color: 'var(--accent)', fontSize: '1.1rem' }}
-            title="New collection"
-          >
-            +
-          </button>
+          <>
+            <button
+              onClick={() => setImportOpen(true)}
+              style={{ ...miniBtn, fontSize: '0.9rem' }}
+              title="Import (Postman / OpenAPI / HAR / cURL)"
+            >
+              ↧
+            </button>
+            <button
+              onClick={() => {
+                const name = window.prompt('New collection name', 'My Collection');
+                if (name) void createCollection(name);
+              }}
+              style={{ ...miniBtn, color: 'var(--accent)', fontSize: '1.1rem' }}
+              title="New collection"
+            >
+              +
+            </button>
+          </>
         )}
       </div>
 
@@ -207,6 +230,13 @@ export function Sidebar() {
               style={miniBtn}
             >
               ▶
+            </button>
+            <button
+              title="Export (Postman v2.1)"
+              onClick={(e) => (e.stopPropagation(), void downloadExport(c.id, c.name))}
+              style={miniBtn}
+            >
+              ↥
             </button>
             {editable && (
               <>
@@ -275,6 +305,7 @@ export function Sidebar() {
           onClose={() => setRunFor(null)}
         />
       )}
+      {importOpen && <ImportModal onClose={() => setImportOpen(false)} />}
     </aside>
   );
 }

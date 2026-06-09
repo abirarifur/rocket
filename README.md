@@ -100,8 +100,19 @@ pnpm stack:up      # build + run the whole project in Docker
 - **Phase 6 — Collection Runner & History** ✓ run a whole collection as a **BullMQ background
   job** with iterations + a CSV/JSON **data file** (one iteration per row), per-iteration
   variable threading, an aggregated pass/fail report, and persisted `CollectionRun` history
+- **Phase 7 — Import / Export & Interop** ✓ round-trip **Postman Collection v2.1**, import
+  **OpenAPI 3.x** / **HAR** / **cURL**, and client-side **code generation** (cURL, fetch, axios,
+  Python requests, Go)
 
-Next: **Phase 7 — Import / Export & Interop** (Postman v2.1, OpenAPI, cURL, code-gen).
+Next: **Phase 8 — Mock Servers, Monitors & Docs**.
+
+### Phase 7 endpoints
+
+| Method | Route                            | Notes                                   |
+| ------ | -------------------------------- | --------------------------------------- |
+| POST   | `/api/workspaces/:id/import`     | create a collection from postman/openapi/har |
+| GET    | `/api/collections/:id/export`    | export as Postman Collection v2.1       |
+| POST   | `/api/import/curl`               | parse a cURL command into a request     |
 
 ### Phase 6 endpoints
 

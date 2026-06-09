@@ -5,6 +5,7 @@ import type { BodyMode, HttpMethod, RawLanguage } from '@rocket/types';
 import { useApp } from '@/store/appStore';
 import { canEdit } from '@/lib/teams-api';
 import { KeyValueEditor } from './KeyValueEditor';
+import { CodeModal } from './CodeModal';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 const BODY_MODES: BodyMode[] = ['none', 'raw', 'urlencoded', 'graphql'];
@@ -24,6 +25,7 @@ const input: React.CSSProperties = {
 export function RequestBuilder() {
   const { draft, updateDraft, send, sending, role } = useApp();
   const [tab, setTab] = useState<Tab>('params');
+  const [codeOpen, setCodeOpen] = useState(false);
   const readOnly = !canEdit(role);
 
   if (!draft) {
@@ -68,6 +70,20 @@ export function RequestBuilder() {
           onChange={(e) => updateDraft({ url: e.target.value })}
         />
         <button
+          onClick={() => setCodeOpen(true)}
+          title="Code snippet"
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            color: 'var(--text)',
+            padding: '0 0.8rem',
+            cursor: 'pointer',
+          }}
+        >
+          {'</>'}
+        </button>
+        <button
           onClick={() => void send()}
           disabled={sending || !draft.url}
           style={{
@@ -84,6 +100,7 @@ export function RequestBuilder() {
           {sending ? '…' : 'Send'}
         </button>
       </div>
+      {codeOpen && <CodeModal request={draft} onClose={() => setCodeOpen(false)} />}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1.2rem', padding: '0 1rem', borderBottom: '1px solid var(--border)' }}>

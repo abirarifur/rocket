@@ -11,10 +11,12 @@ import {
   emptyFolder,
   emptyRequestNode,
   findRequest,
+  newId,
   removeNode,
   renameNode,
   updateRequest,
 } from '@/lib/tree';
+import * as interopApi from '@/lib/interop-api';
 
 type Tree = CollectionNode[];
 
@@ -64,6 +66,8 @@ interface AppState {
   deleteCollection: (id: string) => Promise<void>;
   forkCollection: (collectionId: string, name?: string) => Promise<void>;
   createTeamWorkspace: (name: string) => Promise<void>;
+  importDocument: (type: interopApi.ImportType, content: string) => Promise<void>;
+  importCurlInto: (collectionId: string, request: RequestDefinition) => Promise<void>;
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -300,6 +304,35 @@ export const useApp = create<AppState>((set, get) => ({
     const ws = await teamsApi.createWorkspace(teamId, name, 'TEAM');
     await get().init(); // refresh workspace list
     await get().switchWorkspace(ws.id);
+  },
+
+  async importDocument(type, content) {
+    const { workspaceId } = get();
+    if (!workspaceId) return;
+    const created = await interopApi.importCollection(workspaceId, type, content);
+    const full = await api.getCollection(created.id);
+    set({
+      collections: [
+        ...get().collections,
+        { id: full.id, name: full.name, description: full.description, updatedAt: '' },
+      ],
+      cache: { ...get().cache, [full.id]: full },
+      expanded: { ...get().expanded, [full.id]: true },
+    });
+  },
+
+  async importCurlInto(collectionId, request) {
+    await get().loadCollection(collectionId);
+    const col = get().cache[collectionId];
+    if (!col) return;
+    const node = { id: newId('req'), type: 'request' as const, order: 0, request };
+    const tree = [...(col.tree as Tree), node];
+    set({
+      cache: { ...get().cache, [collectionId]: { ...col, tree } },
+      expanded: { ...get().expanded, [collectionId]: true },
+    });
+    await api.updateCollection(collectionId, { tree });
+    get().selectRequest(collectionId, node.id);
   },
 }));
 
