@@ -86,8 +86,22 @@ pnpm stack:up      # build + run the whole project in Docker
 - **Phase 2 — Collections & Request Builder** ✓ workspace `/app` UI with a collections/folders
   tree sidebar, the request builder (method/URL/params/headers/body/auth), **Send** through the
   proxy with a response viewer (status/time/size/body/headers), autosave, and request history
+- **Phase 3 — Environments & Variables** ✓ environment CRUD + switcher, collection variables,
+  `{{variable}}` interpolation across URL/params/headers/body/auth, scope precedence
+  (collection < environment), and **secret variables encrypted at rest** (AES-256-GCM)
 
-Next: **Phase 3 — Environments & Variables**. See the roadmap.
+Next: **Phase 4 — Teams, Shared Workspaces & RBAC**. See the roadmap.
+
+### Phase 3 endpoints
+
+| Method | Route                                      | Notes                          |
+| ------ | ------------------------------------------ | ------------------------------ |
+| GET    | `/api/workspaces/:id/environments`         | list environments              |
+| POST   | `/api/workspaces/:id/environments`         | create (secrets encrypted)     |
+| GET    | `/api/environments/:id`                    | get (secrets decrypted for member) |
+| PATCH  | `/api/environments/:id`                    | update name/variables          |
+| DELETE | `/api/environments/:id`                    | delete                         |
+| POST   | `/api/send`                                | now accepts `environmentId` + `collectionId` for interpolation |
 
 ### Phase 2 endpoints
 

@@ -29,6 +29,17 @@ export class TenancyService {
     return collection;
   }
 
+  /** Returns the environment (with workspace) if the user may access it, else throws. */
+  async assertEnvironmentAccess(userId: string, environmentId: string) {
+    const environment = await this.prisma.environment.findUnique({
+      where: { id: environmentId },
+      include: { workspace: true },
+    });
+    if (!environment) throw new NotFoundException('Environment not found');
+    await this.assertTeamMember(userId, environment.workspace.teamId);
+    return environment;
+  }
+
   private async assertTeamMember(userId: string, teamId: string) {
     const membership = await this.prisma.teamMembership.findUnique({
       where: { userId_teamId: { userId, teamId } },

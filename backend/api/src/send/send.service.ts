@@ -1,9 +1,12 @@
 import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
-import type { ProxyError, ProxyResponse, RequestDefinition } from '@rocket/types';
+import type { ProxyError, ProxyResponse, RequestDefinition, Variable } from '@rocket/types';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
+import { CryptoService } from '../crypto/crypto.service';
 import { resolveRequest } from './resolve-request';
+import { interpolateRequest, resolveVariableMap } from './interpolate';
+import type { SendRequestDto } from './send.schemas';
 
 @Injectable()
 export class SendService {
@@ -13,15 +16,19 @@ export class SendService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenancy: TenancyService,
+    private readonly crypto: CryptoService,
   ) {}
 
   /**
-   * Resolve and execute a request via the proxy service, persist it to history,
-   * and return the proxy response.
+   * Resolve a request (variable interpolation across collection + environment
+   * scopes), execute it via the proxy, persist history, and return the response.
    */
-  async send(userId: string, workspaceId: string, def: RequestDefinition) {
-    await this.tenancy.assertWorkspaceAccess(userId, workspaceId);
-    const proxyReq = resolveRequest(def);
+  async send(userId: string, dto: SendRequestDto) {
+    await this.tenancy.assertWorkspaceAccess(userId, dto.workspaceId);
+
+    const vars = await this.gatherVariables(userId, dto);
+    const interpolated = interpolateRequest(dto.request, vars);
+    const proxyReq = resolveRequest(interpolated);
 
     let res: Response;
     try {
@@ -36,9 +43,7 @@ export class SendService {
     }
 
     const payload = (await res.json()) as ProxyResponse | ProxyError;
-
     if (!res.ok || 'code' in payload) {
-      // Surface the proxy's structured error (e.g. BLOCKED_SSRF) to the client.
       return { ok: false as const, error: payload as ProxyError };
     }
 
@@ -46,8 +51,8 @@ export class SendService {
     const history = await this.prisma.requestHistory.create({
       data: {
         userId,
-        workspaceId,
-        request: def as unknown as Prisma.InputJsonValue,
+        workspaceId: dto.workspaceId,
+        request: dto.request as unknown as Prisma.InputJsonValue,
         responseMeta: {
           status: response.status,
           timeMs: response.timeMs,
@@ -57,6 +62,26 @@ export class SendService {
     });
 
     return { ok: true as const, response, historyId: history.id };
+  }
+
+  /** Collect variable scopes (collection < environment) with secrets decrypted. */
+  private async gatherVariables(userId: string, dto: SendRequestDto): Promise<Record<string, string>> {
+    let collectionVars: Variable[] = [];
+    let environmentVars: Variable[] = [];
+
+    if (dto.collectionId) {
+      const col = await this.tenancy.assertCollectionAccess(userId, dto.collectionId);
+      collectionVars = this.decrypt(col.variables as Variable[]);
+    }
+    if (dto.environmentId) {
+      const env = await this.tenancy.assertEnvironmentAccess(userId, dto.environmentId);
+      environmentVars = this.decrypt(env.variables as Variable[]);
+    }
+    return resolveVariableMap(collectionVars, environmentVars);
+  }
+
+  private decrypt(vars: Variable[]): Variable[] {
+    return vars.map((v) => (v.secret && v.value ? { ...v, value: this.crypto.decrypt(v.value) } : v));
   }
 
   async history(userId: string, workspaceId: string) {

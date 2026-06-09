@@ -7,6 +7,7 @@ import { useApp } from '@/store/appStore';
 import { Sidebar } from '@/components/Sidebar';
 import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
+import { EnvironmentBar } from '@/components/EnvironmentBar';
 
 export default function AppPage() {
   const router = useRouter();
@@ -48,6 +49,7 @@ export default function AppPage() {
         </strong>
         <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{workspaceName}</span>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <EnvironmentBar />
           <span style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>{email}</span>
           <button
             onClick={async () => {

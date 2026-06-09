@@ -86,5 +86,20 @@ export const updateCollection = (
 export const deleteCollection = (id: string) =>
   req<{ ok: true }>(`/collections/${id}`, { method: 'DELETE' });
 
-export const sendRequest = (workspaceId: string, request: RequestDefinition) =>
-  req<SendResult>('/send', { method: 'POST', body: JSON.stringify({ workspaceId, request }) });
+export const sendRequest = (
+  workspaceId: string,
+  request: RequestDefinition,
+  scope?: { environmentId?: string | null; collectionId?: string | null },
+) =>
+  req<SendResult>('/send', {
+    method: 'POST',
+    body: JSON.stringify({
+      workspaceId,
+      request,
+      environmentId: scope?.environmentId ?? null,
+      collectionId: scope?.collectionId ?? null,
+    }),
+  });
+
+export const updateCollectionVariables = (id: string, variables: unknown[]) =>
+  updateCollection(id, { variables });

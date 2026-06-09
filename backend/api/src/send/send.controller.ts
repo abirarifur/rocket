@@ -17,7 +17,7 @@ export class SendController {
     @CurrentUser() user: AccessTokenPayload,
     @Body(new ZodValidationPipe(SendRequestSchema)) dto: SendRequestDto,
   ) {
-    return this.send.send(user.sub, dto.workspaceId, dto.request);
+    return this.send.send(user.sub, dto);
   }
 
   @Get('workspaces/:workspaceId/history')

@@ -1,7 +1,10 @@
 'use client';
 
-import type { CollectionNode } from '@rocket/types';
+import { useState } from 'react';
+import type { CollectionNode, Variable } from '@rocket/types';
 import { useApp } from '@/store/appStore';
+import { Modal } from './Modal';
+import { VariablesEditor } from './VariablesEditor';
 
 const METHOD_COLOR: Record<string, string> = {
   GET: '#3fb950',
@@ -127,6 +130,7 @@ export function Sidebar() {
     addFolder,
     deleteCollection,
   } = useApp();
+  const [varsFor, setVarsFor] = useState<string | null>(null);
 
   return (
     <aside
@@ -197,6 +201,17 @@ export function Sidebar() {
               +dir
             </button>
             <button
+              title="Collection variables"
+              onClick={async (e) => {
+                e.stopPropagation();
+                await useApp.getState().loadCollection(c.id);
+                setVarsFor(c.id);
+              }}
+              style={miniBtn}
+            >
+              {'{}'}
+            </button>
+            <button
               title="Delete collection"
               onClick={(e) => {
                 e.stopPropagation();
@@ -212,6 +227,44 @@ export function Sidebar() {
           )}
         </div>
       ))}
+
+      {varsFor && cache[varsFor] && (
+        <CollectionVarsModal collectionId={varsFor} onClose={() => setVarsFor(null)} />
+      )}
     </aside>
+  );
+}
+
+function CollectionVarsModal({
+  collectionId,
+  onClose,
+}: {
+  collectionId: string;
+  onClose: () => void;
+}) {
+  const { cache, setCollectionVariables } = useApp();
+  const col = cache[collectionId]!;
+  const [rows, setRows] = useState<Variable[]>((col.variables as Variable[]) ?? []);
+  const [saved, setSaved] = useState(false);
+
+  return (
+    <Modal title={`Variables · ${col.name}`} onClose={onClose}>
+      <VariablesEditor rows={rows} onChange={(v) => (setRows(v), setSaved(false))} />
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+        <button
+          onClick={async () => {
+            await setCollectionVariables(collectionId, rows);
+            setSaved(true);
+          }}
+          style={{ background: 'var(--accent)', border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '0.45rem 1rem', fontWeight: 600 }}
+        >
+          Save
+        </button>
+        {saved && <span style={{ color: 'var(--ok)', fontSize: '0.82rem' }}>Saved ✓</span>}
+        <span style={{ color: 'var(--muted)', fontSize: '0.75rem', marginLeft: 'auto' }}>
+          Collection scope · overridden by the active environment
+        </span>
+      </div>
+    </Modal>
   );
 }

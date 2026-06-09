@@ -1,8 +1,9 @@
 'use client';
 
 import { create } from 'zustand';
-import type { CollectionNode, RequestDefinition } from '@rocket/types';
+import type { CollectionNode, RequestDefinition, Variable } from '@rocket/types';
 import * as api from '@/lib/app-api';
+import * as envApi from '@/lib/env-api';
 import {
   addNode,
   emptyFolder,
@@ -28,7 +29,17 @@ interface AppState {
   sendError: string | null;
   sending: boolean;
 
+  // Environments
+  environments: envApi.Environment[];
+  activeEnvironmentId: string | null;
+
   init: (workspaceId: string, workspaceName: string) => Promise<void>;
+  loadCollection: (id: string) => Promise<void>;
+  setActiveEnvironment: (id: string | null) => void;
+  createEnvironment: (name: string) => Promise<void>;
+  updateEnvironment: (id: string, patch: { name?: string; variables?: Variable[] }) => Promise<void>;
+  deleteEnvironment: (id: string) => Promise<void>;
+  setCollectionVariables: (collectionId: string, variables: Variable[]) => Promise<void>;
   toggleCollection: (id: string) => Promise<void>;
   selectRequest: (collectionId: string, nodeId: string) => void;
   updateDraft: (patch: Partial<RequestDefinition>) => void;
@@ -57,10 +68,52 @@ export const useApp = create<AppState>((set, get) => ({
   response: null,
   sendError: null,
   sending: false,
+  environments: [],
+  activeEnvironmentId: null,
 
   async init(workspaceId, workspaceName) {
-    const detail = await api.getWorkspace(workspaceId);
-    set({ workspaceId, workspaceName, collections: detail.collections });
+    const [detail, environments] = await Promise.all([
+      api.getWorkspace(workspaceId),
+      envApi.listEnvironments(workspaceId),
+    ]);
+    set({ workspaceId, workspaceName, collections: detail.collections, environments });
+  },
+
+  async loadCollection(id) {
+    if (get().cache[id]) return;
+    const full = await api.getCollection(id);
+    set({ cache: { ...get().cache, [id]: full } });
+  },
+
+  setActiveEnvironment(id) {
+    set({ activeEnvironmentId: id });
+  },
+
+  async createEnvironment(name) {
+    const { workspaceId } = get();
+    if (!workspaceId) return;
+    const env = await envApi.createEnvironment(workspaceId, name);
+    set({ environments: [...get().environments, env], activeEnvironmentId: env.id });
+  },
+
+  async updateEnvironment(id, patch) {
+    const env = await envApi.updateEnvironment(id, patch);
+    set({ environments: get().environments.map((e) => (e.id === id ? env : e)) });
+  },
+
+  async deleteEnvironment(id) {
+    await envApi.deleteEnvironment(id);
+    set({
+      environments: get().environments.filter((e) => e.id !== id),
+      activeEnvironmentId: get().activeEnvironmentId === id ? null : get().activeEnvironmentId,
+    });
+  },
+
+  async setCollectionVariables(collectionId, variables) {
+    const col = get().cache[collectionId];
+    if (!col) return;
+    set({ cache: { ...get().cache, [collectionId]: { ...col, variables } } });
+    await api.updateCollectionVariables(collectionId, variables);
   },
 
   async toggleCollection(id) {
@@ -105,12 +158,15 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   async send() {
-    const { workspaceId, draft } = get();
+    const { workspaceId, draft, activeEnvironmentId, activeCollectionId } = get();
     if (!workspaceId || !draft) return;
     set({ sending: true, sendError: null, response: null });
     try {
       await get().saveActive();
-      const result = await api.sendRequest(workspaceId, draft);
+      const result = await api.sendRequest(workspaceId, draft, {
+        environmentId: activeEnvironmentId,
+        collectionId: activeCollectionId,
+      });
       if (result.ok && result.response) {
         set({ response: result.response });
       } else {
