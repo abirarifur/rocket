@@ -6,6 +6,7 @@ import { useApp } from '@/store/appStore';
 import { canEdit } from '@/lib/teams-api';
 import { Modal } from './Modal';
 import { VariablesEditor } from './VariablesEditor';
+import { RunModal } from './RunModal';
 
 const METHOD_COLOR: Record<string, string> = {
   GET: '#3fb950',
@@ -142,6 +143,7 @@ export function Sidebar() {
   } = useApp();
   const editable = canEdit(role);
   const [varsFor, setVarsFor] = useState<string | null>(null);
+  const [runFor, setRunFor] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <aside
@@ -199,6 +201,13 @@ export function Sidebar() {
           >
             <span style={{ color: 'var(--muted)' }}>{expanded[c.id] ? '▾' : '▸'}</span>
             <strong style={{ flex: 1, fontSize: '0.88rem' }}>{c.name}</strong>
+            <button
+              title="Run collection"
+              onClick={(e) => (e.stopPropagation(), setRunFor({ id: c.id, name: c.name }))}
+              style={miniBtn}
+            >
+              ▶
+            </button>
             {editable && (
               <>
                 <button
@@ -258,6 +267,13 @@ export function Sidebar() {
 
       {varsFor && cache[varsFor] && (
         <CollectionVarsModal collectionId={varsFor} onClose={() => setVarsFor(null)} />
+      )}
+      {runFor && (
+        <RunModal
+          collectionId={runFor.id}
+          collectionName={runFor.name}
+          onClose={() => setRunFor(null)}
+        />
       )}
     </aside>
   );

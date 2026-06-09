@@ -97,8 +97,19 @@ pnpm stack:up      # build + run the whole project in Docker
   timeout, no require/process/network), `pm.*` API (variables/environment/request/response/
   test/expect/console), pre-request + test scripts, a test-results panel, and variable
   chaining (test scripts persist to the active environment)
+- **Phase 6 — Collection Runner & History** ✓ run a whole collection as a **BullMQ background
+  job** with iterations + a CSV/JSON **data file** (one iteration per row), per-iteration
+  variable threading, an aggregated pass/fail report, and persisted `CollectionRun` history
 
-Next: **Phase 6 — Collection Runner & History**. See the roadmap.
+Next: **Phase 7 — Import / Export & Interop** (Postman v2.1, OpenAPI, cURL, code-gen).
+
+### Phase 6 endpoints
+
+| Method | Route                          | Notes                              |
+| ------ | ------------------------------ | ---------------------------------- |
+| POST   | `/api/collections/:id/run`     | enqueue a run (env/iterations/data) |
+| GET    | `/api/runs/:id`                | run status + aggregated report     |
+| GET    | `/api/collections/:id/runs`    | recent run history                 |
 
 > Script sandbox note: `node:vm` blocks ambient access and runaway loops, and the runner is a
 > network-isolated service exposing no I/O to scripts. Production hardening should move to

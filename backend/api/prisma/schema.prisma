@@ -167,3 +167,32 @@ model RequestHistory {
   @@index([userId])
   @@index([workspaceId])
 }
+
+enum RunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model CollectionRun {
+  id            String    @id @default(cuid())
+  collectionId  String
+  workspaceId   String
+  userId        String
+  environmentId String?
+  status        RunStatus @default(QUEUED)
+  iterations    Int       @default(1)
+  totalRequests Int       @default(0)
+  passed        Int       @default(0)
+  failed        Int       @default(0)
+  // Aggregated per-iteration / per-request report.
+  report        Json      @default("[]")
+  error         String?
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([collectionId])
+  @@index([workspaceId])
+}
