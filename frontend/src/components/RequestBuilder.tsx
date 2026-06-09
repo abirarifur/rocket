@@ -10,7 +10,7 @@ const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 
 const BODY_MODES: BodyMode[] = ['none', 'raw', 'urlencoded', 'graphql'];
 const RAW_LANGS: RawLanguage[] = ['text', 'json', 'xml', 'html', 'javascript'];
 
-type Tab = 'params' | 'headers' | 'body' | 'auth';
+type Tab = 'params' | 'headers' | 'body' | 'auth' | 'pre' | 'tests';
 
 const input: React.CSSProperties = {
   background: 'var(--bg)',
@@ -87,7 +87,7 @@ export function RequestBuilder() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1.2rem', padding: '0 1rem', borderBottom: '1px solid var(--border)' }}>
-        {(['params', 'headers', 'body', 'auth'] as Tab[]).map((t) => (
+        {(['params', 'headers', 'body', 'auth', 'pre', 'tests'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -102,7 +102,9 @@ export function RequestBuilder() {
               textTransform: 'capitalize',
             }}
           >
-            {t}
+            {t === 'pre' ? 'Pre-request' : t}
+            {t === 'pre' && draft.preRequestScript?.trim() ? ' •' : ''}
+            {t === 'tests' && draft.testScript?.trim() ? ' •' : ''}
           </button>
         ))}
       </div>
@@ -117,7 +119,55 @@ export function RequestBuilder() {
         )}
         {tab === 'body' && <BodyEditor />}
         {tab === 'auth' && <AuthEditor />}
+        {tab === 'pre' && (
+          <ScriptEditor
+            value={draft.preRequestScript ?? ''}
+            onChange={(v) => updateDraft({ preRequestScript: v })}
+            placeholder={'// Runs before the request.\n// pm.environment.set("token", "...")'}
+          />
+        )}
+        {tab === 'tests' && (
+          <ScriptEditor
+            value={draft.testScript ?? ''}
+            onChange={(v) => updateDraft({ testScript: v })}
+            placeholder={
+              '// Runs after the response.\npm.test("status is 200", () => {\n  pm.response.to.have.status(200);\n});'
+            }
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+function ScriptEditor({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <textarea
+        style={{
+          ...input,
+          width: '100%',
+          minHeight: 220,
+          fontFamily: 'ui-monospace, monospace',
+          fontSize: '0.82rem',
+        }}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        spellCheck={false}
+      />
+      <p style={{ color: 'var(--muted)', fontSize: '0.72rem', marginTop: '0.4rem' }}>
+        Sandboxed JS · <code>pm.environment</code>, <code>pm.variables</code>, <code>pm.request</code>,{' '}
+        <code>pm.response</code>, <code>pm.test</code>, <code>pm.expect</code>, <code>console.log</code>
+      </p>
     </div>
   );
 }

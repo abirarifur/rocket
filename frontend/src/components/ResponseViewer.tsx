@@ -21,8 +21,8 @@ function fmtSize(bytes: number): string {
 }
 
 export function ResponseViewer() {
-  const { response, sending, sendError } = useApp();
-  const [tab, setTab] = useState<'body' | 'headers'>('body');
+  const { response, sending, sendError, testResults, scriptLogs, scriptError } = useApp();
+  const [tab, setTab] = useState<'body' | 'headers' | 'tests'>('body');
 
   if (sending) {
     return <Panel><span style={{ color: 'var(--muted)' }}>Sending…</span></Panel>;
@@ -44,6 +44,7 @@ export function ResponseViewer() {
 
   const ok = response.status >= 200 && response.status < 400;
   const ct = response.headers['content-type'];
+  const passedCount = testResults.filter((t) => t.passed).length;
 
   return (
     <div style={{ borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
@@ -61,17 +62,49 @@ export function ResponseViewer() {
           <TabBtn active={tab === 'headers'} onClick={() => setTab('headers')}>
             Headers ({Object.keys(response.headers).length})
           </TabBtn>
+          {(testResults.length > 0 || scriptLogs.length > 0 || scriptError) && (
+            <TabBtn active={tab === 'tests'} onClick={() => setTab('tests')}>
+              Tests {testResults.length > 0 && `(${passedCount}/${testResults.length})`}
+            </TabBtn>
+          )}
         </div>
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: '0 1rem 1rem' }}>
-        {tab === 'body' ? (
-          <pre style={preStyle}>{prettyMaybe(response.body, ct)}</pre>
-        ) : (
+        {tab === 'body' && <pre style={preStyle}>{prettyMaybe(response.body, ct)}</pre>}
+        {tab === 'headers' && (
           <pre style={preStyle}>
             {Object.entries(response.headers)
               .map(([k, v]) => `${k}: ${v}`)
               .join('\n')}
           </pre>
+        )}
+        {tab === 'tests' && (
+          <div>
+            {scriptError && (
+              <p style={{ color: 'var(--bad)', fontSize: '0.82rem' }}>⚠ {scriptError}</p>
+            )}
+            {testResults.map((t, i) => (
+              <div
+                key={i}
+                style={{ display: 'flex', gap: '0.5rem', padding: '0.3rem 0', fontSize: '0.85rem' }}
+              >
+                <span style={{ color: t.passed ? 'var(--ok)' : 'var(--bad)', fontWeight: 700 }}>
+                  {t.passed ? 'PASS' : 'FAIL'}
+                </span>
+                <span>{t.name}</span>
+                {t.error && <span style={{ color: 'var(--muted)' }}>— {t.error}</span>}
+              </div>
+            ))}
+            {scriptLogs.length > 0 && (
+              <>
+                <p style={{ color: 'var(--muted)', fontSize: '0.72rem', marginTop: '1rem' }}>CONSOLE</p>
+                <pre style={preStyle}>{scriptLogs.join('\n')}</pre>
+              </>
+            )}
+            {testResults.length === 0 && scriptLogs.length === 0 && !scriptError && (
+              <span style={{ color: 'var(--muted)' }}>No test output.</span>
+            )}
+          </div>
         )}
       </div>
     </div>

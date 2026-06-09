@@ -33,6 +33,9 @@ interface AppState {
   response: api.ProxyResponseDto | null;
   sendError: string | null;
   sending: boolean;
+  testResults: api.ScriptTest[];
+  scriptLogs: string[];
+  scriptError: string | null;
 
   // Environments
   environments: envApi.Environment[];
@@ -42,6 +45,7 @@ interface AppState {
   switchWorkspace: (workspaceId: string) => Promise<void>;
   loadCollection: (id: string) => Promise<void>;
   setActiveEnvironment: (id: string | null) => void;
+  refreshEnvironments: () => Promise<void>;
   createEnvironment: (name: string) => Promise<void>;
   updateEnvironment: (id: string, patch: { name?: string; variables?: Variable[] }) => Promise<void>;
   deleteEnvironment: (id: string) => Promise<void>;
@@ -79,6 +83,9 @@ export const useApp = create<AppState>((set, get) => ({
   response: null,
   sendError: null,
   sending: false,
+  testResults: [],
+  scriptLogs: [],
+  scriptError: null,
   environments: [],
   activeEnvironmentId: null,
 
@@ -123,6 +130,12 @@ export const useApp = create<AppState>((set, get) => ({
 
   setActiveEnvironment(id) {
     set({ activeEnvironmentId: id });
+  },
+
+  async refreshEnvironments() {
+    const { workspaceId } = get();
+    if (!workspaceId) return;
+    set({ environments: await envApi.listEnvironments(workspaceId) });
   },
 
   async createEnvironment(name) {
@@ -197,15 +210,24 @@ export const useApp = create<AppState>((set, get) => ({
   async send() {
     const { workspaceId, draft, activeEnvironmentId, activeCollectionId } = get();
     if (!workspaceId || !draft) return;
-    set({ sending: true, sendError: null, response: null });
+    set({ sending: true, sendError: null, response: null, testResults: [], scriptLogs: [], scriptError: null });
     try {
       await get().saveActive();
       const result = await api.sendRequest(workspaceId, draft, {
         environmentId: activeEnvironmentId,
         collectionId: activeCollectionId,
       });
+      set({
+        testResults: result.tests ?? [],
+        scriptLogs: result.logs ?? [],
+        scriptError: result.scriptError ?? null,
+      });
       if (result.ok && result.response) {
         set({ response: result.response });
+        // A test script may have written to the active environment — refresh it.
+        if (activeEnvironmentId && result.tests && result.tests.length >= 0) {
+          void get().refreshEnvironments();
+        }
       } else {
         set({ sendError: result.error?.error ?? 'Request failed' });
       }

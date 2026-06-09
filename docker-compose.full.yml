@@ -86,6 +86,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-rocket-artifacts}
       API_PORT: "4000"
       PROXY_BASE_URL: http://proxy:4100
+      RUNNER_BASE_URL: http://runner:4200
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-dev-encryption-key-change-me}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev-access-secret-change-me}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-me}
@@ -107,6 +108,17 @@ services:
       WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3001}
     ports:
       - "4100:4100"
+
+  runner:
+    build:
+      context: ./backend
+      dockerfile: runner/Dockerfile
+    restart: unless-stopped
+    environment:
+      RUNNER_PORT: "4200"
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3001}
+    ports:
+      - "4200:4200"
 
   web:
     build:

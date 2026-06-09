@@ -1,5 +1,12 @@
 import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
-import type { ProxyError, ProxyResponse, RequestDefinition, Variable } from '@rocket/types';
+import type {
+  ProxyError,
+  ProxyResponse,
+  RequestDefinition,
+  RunScriptRequest,
+  RunScriptResult,
+  Variable,
+} from '@rocket/types';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
@@ -12,6 +19,7 @@ import type { SendRequestDto } from './send.schemas';
 export class SendService {
   private readonly logger = new Logger(SendService.name);
   private readonly proxyBase = process.env.PROXY_BASE_URL ?? 'http://localhost:4100';
+  private readonly runnerBase = process.env.RUNNER_BASE_URL ?? 'http://localhost:4200';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -19,14 +27,28 @@ export class SendService {
     private readonly crypto: CryptoService,
   ) {}
 
-  /**
-   * Resolve a request (variable interpolation across collection + environment
-   * scopes), execute it via the proxy, persist history, and return the response.
-   */
   async send(userId: string, dto: SendRequestDto) {
     await this.tenancy.assertWorkspaceAccess(userId, dto.workspaceId);
 
     const vars = await this.gatherVariables(userId, dto);
+    const logs: string[] = [];
+    const tests: RunScriptResult['tests'] = [];
+    let scriptError: string | undefined;
+
+    // ── Pre-request script: may set variables used for interpolation ──
+    if (dto.request.preRequestScript?.trim()) {
+      const pre = await this.runScript({
+        phase: 'pre',
+        script: dto.request.preRequestScript,
+        request: dto.request,
+        variables: vars,
+      });
+      Object.assign(vars, pre.setLocal, pre.setEnv);
+      logs.push(...pre.logs);
+      if (pre.error) scriptError = `Pre-request: ${pre.error}`;
+      await this.persistEnvUpdates(userId, dto.environmentId, pre.setEnv);
+    }
+
     const interpolated = interpolateRequest(dto.request, vars);
     const proxyReq = resolveRequest(interpolated);
 
@@ -44,10 +66,26 @@ export class SendService {
 
     const payload = (await res.json()) as ProxyResponse | ProxyError;
     if (!res.ok || 'code' in payload) {
-      return { ok: false as const, error: payload as ProxyError };
+      return { ok: false as const, error: payload as ProxyError, logs, scriptError };
     }
 
     const response = payload as ProxyResponse;
+
+    // ── Test script: assertions against the response ──
+    if (dto.request.testScript?.trim()) {
+      const result = await this.runScript({
+        phase: 'test',
+        script: dto.request.testScript,
+        request: interpolated,
+        response,
+        variables: vars,
+      });
+      tests.push(...result.tests);
+      logs.push(...result.logs);
+      if (result.error) scriptError = `Tests: ${result.error}`;
+      await this.persistEnvUpdates(userId, dto.environmentId, result.setEnv);
+    }
+
     const history = await this.prisma.requestHistory.create({
       data: {
         userId,
@@ -57,14 +95,57 @@ export class SendService {
           status: response.status,
           timeMs: response.timeMs,
           sizeBytes: response.sizeBytes,
+          tests: tests.length,
+          testsPassed: tests.filter((t) => t.passed).length,
         } as unknown as Prisma.InputJsonValue,
       },
     });
 
-    return { ok: true as const, response, historyId: history.id };
+    return { ok: true as const, response, historyId: history.id, tests, logs, scriptError };
   }
 
-  /** Collect variable scopes (collection < environment) with secrets decrypted. */
+  /** Call the sandboxed Script Runner service. Failures degrade gracefully. */
+  private async runScript(body: RunScriptRequest): Promise<RunScriptResult> {
+    try {
+      const res = await fetch(`${this.runnerBase}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) return emptyResult(`runner returned ${res.status}`);
+      return (await res.json()) as RunScriptResult;
+    } catch (e) {
+      return emptyResult(`runner unreachable: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
+  /** Persist script-set variables into the active environment (chaining). */
+  private async persistEnvUpdates(
+    userId: string,
+    environmentId: string | null | undefined,
+    setEnv: Record<string, string>,
+  ): Promise<void> {
+    const keys = Object.keys(setEnv);
+    if (!environmentId || keys.length === 0) return;
+    const { environment } = await this.tenancy.assertEnvironmentAccess(
+      userId,
+      environmentId,
+      'EDITOR',
+    );
+    const current = environment.variables as Variable[];
+    const byKey = new Map(current.map((v) => [v.key, v]));
+    for (const k of keys) {
+      const existing = byKey.get(k);
+      const secret = existing?.secret ?? false;
+      const value = secret ? this.crypto.encrypt(setEnv[k]!) : setEnv[k]!;
+      byKey.set(k, { key: k, value, enabled: existing?.enabled ?? true, secret });
+    }
+    await this.prisma.environment.update({
+      where: { id: environmentId },
+      data: { variables: [...byKey.values()] as unknown as Prisma.InputJsonValue },
+    });
+  }
+
   private async gatherVariables(userId: string, dto: SendRequestDto): Promise<Record<string, string>> {
     let collectionVars: Variable[] = [];
     let environmentVars: Variable[] = [];
@@ -92,4 +173,8 @@ export class SendService {
       take: 50,
     });
   }
+}
+
+function emptyResult(error: string): RunScriptResult {
+  return { tests: [], logs: [], setEnv: {}, setLocal: {}, error };
 }

@@ -59,11 +59,20 @@ export interface ProxyResponseDto {
   sizeBytes: number;
 }
 
+export interface ScriptTest {
+  name: string;
+  passed: boolean;
+  error?: string;
+}
+
 export interface SendResult {
   ok: boolean;
   response?: ProxyResponseDto;
   error?: { error: string; code: string };
   historyId?: string;
+  tests?: ScriptTest[];
+  logs?: string[];
+  scriptError?: string;
 }
 
 export const listWorkspaces = () => req<WorkspaceSummary[]>('/workspaces');

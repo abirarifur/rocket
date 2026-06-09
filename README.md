@@ -16,6 +16,7 @@ rocket/
 ├── backend/                  # pnpm workspace of server-side services
 │   ├── api/                  # NestJS core API — auth, workspaces, collections…
 │   ├── proxy/                # Request Proxy — outbound HTTP calls (CORS + SSRF safe)
+│   ├── runner/               # Script Runner — sandboxed pm.* scripts (Phase 5)
 │   └── shared/               # source of truth for the shared Zod schemas
 ├── docker-compose.yml        # backing services only (postgres + redis + minio)
 ├── docker-compose.full.yml   # the whole project in one command
@@ -92,8 +93,16 @@ pnpm stack:up      # build + run the whole project in Docker
 - **Phase 4 — Teams, Workspaces & RBAC** ✓ invite by email + accept, roles
   (Owner/Admin/Editor/Viewer) enforced at API + UI, team workspaces + switcher, collection
   forking, and public read-only share links
+- **Phase 5 — Scripting & Chaining** ✓ sandboxed Script Runner service (`node:vm`, hard
+  timeout, no require/process/network), `pm.*` API (variables/environment/request/response/
+  test/expect/console), pre-request + test scripts, a test-results panel, and variable
+  chaining (test scripts persist to the active environment)
 
-Next: **Phase 5 — Scripting & Chaining** (sandboxed `pm.*`). See the roadmap.
+Next: **Phase 6 — Collection Runner & History**. See the roadmap.
+
+> Script sandbox note: `node:vm` blocks ambient access and runaway loops, and the runner is a
+> network-isolated service exposing no I/O to scripts. Production hardening should move to
+> isolated-vm / V8 isolates for defense against determined vm escapes.
 
 ### Phase 4 endpoints
 
