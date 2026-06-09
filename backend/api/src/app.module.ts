@@ -5,6 +5,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
+import { TenancyModule } from './tenancy/tenancy.module';
+import { WorkspacesModule } from './workspaces/workspaces.module';
+import { CollectionsModule } from './collections/collections.module';
+import { SendModule } from './send/send.module';
 import { RateLimitGuard } from './common/rate-limit.guard';
 
 @Module({
@@ -12,8 +16,12 @@ import { RateLimitGuard } from './common/rate-limit.guard';
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env', '.env'] }),
     PrismaModule,
     RedisModule,
+    TenancyModule,
     HealthModule,
     AuthModule,
+    WorkspacesModule,
+    CollectionsModule,
+    SendModule,
   ],
   providers: [
     // Global Redis-backed rate limiting (per-route overrides via @RateLimit).

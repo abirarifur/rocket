@@ -83,8 +83,24 @@ pnpm stack:up      # build + run the whole project in Docker
 - **Phase 0 — Foundation & Scaffolding** ✓ monorepo, services, Docker, SSRF-safe proxy
 - **Phase 1 — Auth & Tenancy** ✓ register/login/refresh/logout, JWT cookies, email verify &
   password reset, auto-created team + personal workspace, Redis-backed rate limiting, web auth pages
+- **Phase 2 — Collections & Request Builder** ✓ workspace `/app` UI with a collections/folders
+  tree sidebar, the request builder (method/URL/params/headers/body/auth), **Send** through the
+  proxy with a response viewer (status/time/size/body/headers), autosave, and request history
 
-Next: **Phase 2 — Collections, Folders & the Request Builder**. See the roadmap.
+Next: **Phase 3 — Environments & Variables**. See the roadmap.
+
+### Phase 2 endpoints
+
+| Method | Route                                   | Notes                               |
+| ------ | --------------------------------------- | ----------------------------------- |
+| GET    | `/api/workspaces`                       | workspaces across the user's teams  |
+| GET    | `/api/workspaces/:id`                   | workspace + collection summaries    |
+| POST   | `/api/workspaces/:id/collections`       | create a collection                 |
+| GET    | `/api/collections/:id`                  | full collection (folder/request tree) |
+| PATCH  | `/api/collections/:id`                  | update name/description/tree/variables |
+| DELETE | `/api/collections/:id`                  | delete a collection                 |
+| POST   | `/api/send`                             | resolve + execute via proxy, log history |
+| GET    | `/api/workspaces/:id/history`           | recent request history              |
 
 ### Auth endpoints (Phase 1)
 

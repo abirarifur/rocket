@@ -86,9 +86,21 @@ export default function DashboardPage() {
         ))}
       </section>
 
-      <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '2rem' }}>
-        Collections and the request builder arrive in Phase 2.
-      </p>
+      <a
+        href="/app"
+        style={{
+          display: 'inline-block',
+          marginTop: '2rem',
+          padding: '0.6rem 1.2rem',
+          background: 'var(--accent)',
+          color: '#fff',
+          borderRadius: 8,
+          textDecoration: 'none',
+          fontWeight: 600,
+        }}
+      >
+        Open workspace →
+      </a>
     </main>
   );
 }

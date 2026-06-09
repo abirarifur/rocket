@@ -85,6 +85,7 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-rocketminio}
       S3_BUCKET: ${S3_BUCKET:-rocket-artifacts}
       API_PORT: "4000"
+      PROXY_BASE_URL: http://proxy:4100
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev-access-secret-change-me}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-me}
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-900}
