@@ -2,28 +2,23 @@
   "name": "rocket",
   "version": "0.0.1",
   "private": true,
-  "description": "Rocket — a Postman-inspired API platform (web).",
-  "packageManager": "pnpm@10.28.1",
+  "description": "Rocket — a Postman-inspired API platform. Independent frontend/ and backend/ projects.",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
-    "clean": "turbo run clean && rm -rf node_modules",
+    "install:all": "pnpm -C frontend install && pnpm -C backend install",
+    "dev:frontend": "pnpm -C frontend dev",
+    "dev:backend": "pnpm -C backend dev",
+    "build:frontend": "pnpm -C frontend build",
+    "build:backend": "pnpm -C backend build",
+    "build": "pnpm run build:backend && pnpm run build:frontend",
+    "sync:types": "cp backend/shared/src/*.ts frontend/types/ && echo 'synced backend/shared -> frontend/types'",
     "infra:up": "docker compose -f docker-compose.yml up -d",
     "infra:down": "docker compose -f docker-compose.yml down",
     "infra:logs": "docker compose -f docker-compose.yml logs -f",
     "stack:up": "docker compose -f docker-compose.full.yml up --build -d",
     "stack:down": "docker compose -f docker-compose.full.yml down",
     "stack:logs": "docker compose -f docker-compose.full.yml logs -f"
-  },
-  "devDependencies": {
-    "turbo": "^2.5.5",
-    "typescript": "^5.7.3",
-    "prettier": "^3.4.2"
   }
 }

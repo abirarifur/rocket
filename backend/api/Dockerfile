@@ -1,12 +1,10 @@
-# Multi-stage build for the NestJS API service.
+# NestJS API service. Build context is the backend/ workspace root.
 FROM node:22-alpine AS base
 RUN corepack enable
 WORKDIR /app
 
 FROM base AS build
-COPY pnpm-workspace.yaml package.json tsconfig.base.json ./
-COPY packages/types ./packages/types
-COPY apps/api ./apps/api
+COPY . .
 RUN pnpm install --frozen-lockfile=false
 RUN pnpm --filter @rocket/types build \
  && pnpm --filter @rocket/api prisma:generate \
@@ -15,6 +13,6 @@ RUN pnpm --filter @rocket/types build \
 FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=build /app /app
-RUN chmod +x /app/apps/api/docker-entrypoint.sh
+RUN chmod +x /app/api/docker-entrypoint.sh
 EXPOSE 4000
-CMD ["/app/apps/api/docker-entrypoint.sh"]
+CMD ["/app/api/docker-entrypoint.sh"]

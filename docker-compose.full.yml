@@ -67,8 +67,8 @@ services:
 
   api:
     build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+      context: ./backend
+      dockerfile: api/Dockerfile
     restart: unless-stopped
     depends_on:
       postgres:
@@ -95,8 +95,8 @@ services:
 
   proxy:
     build:
-      context: .
-      dockerfile: apps/proxy/Dockerfile
+      context: ./backend
+      dockerfile: proxy/Dockerfile
     restart: unless-stopped
     environment:
       PROXY_PORT: "4100"
@@ -108,8 +108,8 @@ services:
 
   web:
     build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
       args:
         # Browser talks to the API via the host-published port.
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000}

@@ -32,7 +32,7 @@ pnpm-debug.log*
 coverage/
 
 # Prisma
-apps/api/prisma/*.db
+backend/api/prisma/*.db
 
 # Docker volumes (local)
 .volumes/
