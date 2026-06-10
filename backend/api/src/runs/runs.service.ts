@@ -3,7 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { RunStatus } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
-import type { CollectionNode, RequestDefinition, Variable } from '@rocket/types';
+import type { CollectionNode, RequestAuth, RequestDefinition, Variable } from '@rocket/types';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
 import { CryptoService } from '../crypto/crypto.service';
@@ -114,6 +114,7 @@ export class RunsService {
       const collection = await this.prisma.collection.findUniqueOrThrow({ where: { id: run.collectionId } });
       const requests = flatten(collection.tree as unknown as CollectionNode[]);
       const collectionVars = this.decrypt(collection.variables as unknown as Variable[]);
+      const collectionAuth = (collection.auth as RequestAuth | null) ?? null;
 
       const workspace = await this.prisma.workspace.findUnique({ where: { id: run.workspaceId } });
       const team = workspace
@@ -142,7 +143,7 @@ export class RunsService {
         const iterationResults: unknown[] = [];
 
         for (const entry of requests) {
-          const result = await this.execution.executeOne(entry.request, runtime);
+          const result = await this.execution.executeOne(entry.request, runtime, collectionAuth);
           Object.assign(runtime, result.setLocal, result.setEnv);
 
           const reqPassed = result.tests.filter((t) => t.passed).length;

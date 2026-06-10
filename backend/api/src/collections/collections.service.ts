@@ -43,6 +43,9 @@ export class CollectionsService {
     if (dto.variables !== undefined) {
       data.variables = dto.variables as unknown as Prisma.InputJsonValue;
     }
+    if (dto.auth !== undefined) {
+      data.auth = dto.auth as unknown as Prisma.InputJsonValue;
+    }
     const updated = await this.prisma.collection.update({ where: { id: collectionId }, data });
     // Notify collaborators in the workspace so their views refresh live.
     this.events.emit('collection.updated', {

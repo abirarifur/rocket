@@ -172,6 +172,8 @@ model Collection {
   description String?
   // Variables and the folder/request tree are stored as JSON for flexibility.
   variables   Json       @default("[]")
+  // Collection-level authorization inherited by requests whose auth type is "inherit".
+  auth        Json?
   tree        Json       @default("[]")
   forkOf      Collection? @relation("Fork", fields: [forkOfId], references: [id])
   forkOfId    String?

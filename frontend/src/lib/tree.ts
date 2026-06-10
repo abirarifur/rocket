@@ -157,7 +157,8 @@ export function emptyRequest(name = 'Untitled Request'): RequestDefinition {
     params: [],
     headers: [],
     body: { mode: 'none' },
-    auth: { type: 'none' },
+    // New requests inherit their collection's auth by default (like Postman).
+    auth: { type: 'inherit' },
   };
 }
 

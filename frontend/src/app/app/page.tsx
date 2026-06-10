@@ -9,6 +9,7 @@ import { TabBar } from '@/components/TabBar';
 import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { EnvironmentEditor } from '@/components/EnvironmentEditor';
+import { CollectionEditor } from '@/components/CollectionEditor';
 import { EnvironmentBar } from '@/components/EnvironmentBar';
 import { WorkspaceBar } from '@/components/WorkspaceBar';
 import { MembersBar } from '@/components/MembersBar';
@@ -157,10 +158,12 @@ export default function AppPage() {
   );
 }
 
-/** Renders the active tab's content: the Environments editor, or the request builder. */
+/** Renders the active tab's content: environment editor, collection settings, or the request builder. */
 function MainPanel() {
-  const kind = useApp((s) => s.tabs.find((t) => t.id === s.activeTabId)?.kind ?? 'request');
-  if (kind === 'environment') return <EnvironmentEditor />;
+  const activeTab = useApp((s) => s.tabs.find((t) => t.id === s.activeTabId) ?? null);
+  if (activeTab?.kind === 'environment') return <EnvironmentEditor />;
+  if (activeTab?.kind === 'collection' && activeTab.collectionId)
+    return <CollectionEditor collectionId={activeTab.collectionId} />;
   return (
     <>
       <RequestBuilder />

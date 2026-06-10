@@ -26,7 +26,7 @@ type Tree = CollectionNode[];
 
 export interface Tab {
   id: string;
-  kind: 'request' | 'environment';
+  kind: 'request' | 'environment' | 'collection';
   collectionId: string | null;
   nodeId: string | null;
   label: string;
@@ -69,6 +69,7 @@ interface AppState {
   closeTab: (id: string) => void;
   newTab: () => void;
   openEnvironmentTab: () => void;
+  openCollectionTab: (collectionId: string) => Promise<void>;
 
   // Environments
   environments: envApi.Environment[];
@@ -91,6 +92,8 @@ interface AppState {
   updateEnvironment: (id: string, patch: { name?: string; variables?: Variable[] }) => Promise<void>;
   deleteEnvironment: (id: string) => Promise<void>;
   setCollectionVariables: (collectionId: string, variables: Variable[]) => Promise<void>;
+  setCollectionAuth: (collectionId: string, auth: RequestDefinition['auth']) => Promise<void>;
+  updateCollectionMeta: (collectionId: string, patch: { name?: string; description?: string }) => Promise<void>;
   toggleCollection: (id: string) => Promise<void>;
   selectRequest: (collectionId: string, nodeId: string) => void;
   loadDraft: (request: RequestDefinition) => void;
@@ -264,6 +267,28 @@ export const useApp = create<AppState>((set, get) => ({
     await api.updateCollectionVariables(collectionId, variables);
   },
 
+  async setCollectionAuth(collectionId, auth) {
+    const col = get().cache[collectionId];
+    if (!col) return;
+    set({ cache: { ...get().cache, [collectionId]: { ...col, auth } } });
+    await api.updateCollectionAuth(collectionId, auth);
+  },
+
+  async updateCollectionMeta(collectionId, patch) {
+    const col = get().cache[collectionId];
+    if (col) set({ cache: { ...get().cache, [collectionId]: { ...col, ...patch } } });
+    // Keep the sidebar summary list and any open tab label in sync with a renamed collection.
+    if (patch.name !== undefined) {
+      set({
+        collections: get().collections.map((c) => (c.id === collectionId ? { ...c, name: patch.name! } : c)),
+        tabs: get().tabs.map((t) =>
+          t.kind === 'collection' && t.collectionId === collectionId ? { ...t, label: patch.name! } : t,
+        ),
+      });
+    }
+    await api.updateCollection(collectionId, patch);
+  },
+
   async toggleCollection(id) {
     const expanded = { ...get().expanded, [id]: !get().expanded[id] };
     set({ expanded });
@@ -350,6 +375,26 @@ export const useApp = create<AppState>((set, get) => ({
       tabs: [...get().tabs, tab],
       activeTabId: tab.id,
       activeCollectionId: null,
+      activeNodeId: null,
+      ...restoreSnapshot(undefined),
+    });
+  },
+
+  /** Open (or focus) the settings/variables/auth editor for a collection in its own tab. */
+  async openCollectionTab(collectionId) {
+    await get().loadCollection(collectionId);
+    const existing = get().tabs.find((t) => t.kind === 'collection' && t.collectionId === collectionId);
+    if (existing) {
+      get().setActiveTab(existing.id);
+      return;
+    }
+    stashActive(get, set);
+    const col = get().cache[collectionId];
+    const tab: Tab = { id: newId('tab'), kind: 'collection', collectionId, nodeId: null, label: col?.name ?? 'Collection', method: '' };
+    set({
+      tabs: [...get().tabs, tab],
+      activeTabId: tab.id,
+      activeCollectionId: collectionId,
       activeNodeId: null,
       ...restoreSnapshot(undefined),
     });

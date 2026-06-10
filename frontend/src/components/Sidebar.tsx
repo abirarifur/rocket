@@ -2,12 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Box, ChevronDown, ChevronRight, Download, Folder, MoreHorizontal, Plus } from 'lucide-react';
-import type { CollectionNode, Variable } from '@rocket/types';
+import type { CollectionNode } from '@rocket/types';
 import { useApp } from '@/store/appStore';
 import { canEdit } from '@/lib/teams-api';
 import { filterTree } from '@/lib/tree';
-import { Modal } from './Modal';
-import { VariablesEditor } from './VariablesEditor';
 import { RunModal } from './RunModal';
 import { ImportModal } from './ImportModal';
 import { OpsModal } from './OpsModal';
@@ -210,7 +208,6 @@ export function Sidebar() {
   }, [query, collections, cache]);
 
   const searching = query.trim() !== '';
-  const [varsFor, setVarsFor] = useState<string | null>(null);
   const [runFor, setRunFor] = useState<{ id: string; name: string } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [opsFor, setOpsFor] = useState<{ id: string; name: string } | null>(null);
@@ -238,7 +235,7 @@ export function Sidebar() {
     items.push({ label: 'Export (Postman v2.1)', onClick: () => void downloadExport(c.id, c.name) });
     if (editable) {
       items.push(
-        { label: 'Variables', onClick: async () => { await useApp.getState().loadCollection(c.id); setVarsFor(c.id); } },
+        { label: 'Settings (variables · auth)', onClick: () => void useApp.getState().openCollectionTab(c.id) },
         { label: 'Mock / Monitor / Docs', onClick: () => setOpsFor({ id: c.id, name: c.name }) },
         { label: 'Fork', shortcut: 'Ctrl+Alt+F', onClick: async () => { const n = await promptDialog({ title: 'Fork collection', label: 'Fork name', defaultValue: `${c.name} (fork)`, confirmLabel: 'Fork' }); if (n) void forkCollection(c.id, n); } },
         { divider: true },
@@ -365,9 +362,6 @@ export function Sidebar() {
         </div>
       ))}
 
-      {varsFor && cache[varsFor] && (
-        <CollectionVarsModal collectionId={varsFor} onClose={() => setVarsFor(null)} />
-      )}
       {runFor && (
         <RunModal
           collectionId={runFor.id}
@@ -391,36 +385,3 @@ export function Sidebar() {
   );
 }
 
-function CollectionVarsModal({
-  collectionId,
-  onClose,
-}: {
-  collectionId: string;
-  onClose: () => void;
-}) {
-  const { cache, setCollectionVariables } = useApp();
-  const col = cache[collectionId]!;
-  const [rows, setRows] = useState<Variable[]>((col.variables as Variable[]) ?? []);
-  const [saved, setSaved] = useState(false);
-
-  return (
-    <Modal title={`Variables · ${col.name}`} onClose={onClose}>
-      <VariablesEditor rows={rows} onChange={(v) => (setRows(v), setSaved(false))} />
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
-        <button
-          onClick={async () => {
-            await setCollectionVariables(collectionId, rows);
-            setSaved(true);
-          }}
-          style={{ background: 'var(--accent)', border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '0.45rem 1rem', fontWeight: 600 }}
-        >
-          Save
-        </button>
-        {saved && <span style={{ color: 'var(--ok)', fontSize: '0.82rem' }}>Saved ✓</span>}
-        <span style={{ color: 'var(--muted)', fontSize: '0.75rem', marginLeft: 'auto' }}>
-          Collection scope · overridden by the active environment
-        </span>
-      </div>
-    </Modal>
-  );
-}

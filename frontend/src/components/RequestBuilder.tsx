@@ -413,11 +413,19 @@ function AuthEditor() {
         onChange={(e) => updateDraft({ auth: { ...auth, type: e.target.value as typeof auth.type } })}
         style={input}
       >
+        <option value="inherit">Inherit from collection</option>
         <option value="none">No Auth</option>
         <option value="basic">Basic</option>
         <option value="bearer">Bearer Token</option>
         <option value="apikey">API Key</option>
       </select>
+
+      {auth.type === 'inherit' && (
+        <p style={{ color: 'var(--muted)', fontSize: '0.8rem', lineHeight: 1.6 }}>
+          This request uses the authorization configured on its collection (open the collection&apos;s
+          <strong> Authorization</strong> tab to set it). Choose another type above to override it here.
+        </p>
+      )}
 
       {auth.type === 'basic' && (
         <>

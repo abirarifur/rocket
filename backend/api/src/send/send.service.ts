@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Variable } from '@rocket/types';
+import type { RequestAuth, Variable } from '@rocket/types';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
@@ -21,7 +21,8 @@ export class SendService {
     await this.tenancy.assertWorkspaceAccess(userId, dto.workspaceId);
 
     const vars = await this.gatherVariables(userId, dto);
-    const result = await this.execution.executeOne(dto.request, vars);
+    const inheritedAuth = await this.collectionAuth(userId, dto);
+    const result = await this.execution.executeOne(dto.request, vars, inheritedAuth);
 
     // Persist any environment-scoped variables written by scripts.
     await this.persistEnvUpdates(userId, dto.environmentId, result.setEnv);
@@ -96,6 +97,13 @@ export class SendService {
       environmentVars = this.decrypt(environment.variables as Variable[]);
     }
     return resolveVariableMap(globalVars, collectionVars, environmentVars);
+  }
+
+  /** The collection's auth, used only when the request inherits (avoids a fetch otherwise). */
+  async collectionAuth(userId: string, dto: SendRequestDto): Promise<RequestAuth | null> {
+    if (dto.request.auth?.type !== 'inherit' || !dto.collectionId) return null;
+    const { collection } = await this.tenancy.assertCollectionAccess(userId, dto.collectionId);
+    return (collection.auth as RequestAuth | null) ?? null;
   }
 
   decrypt(vars: Variable[]): Variable[] {

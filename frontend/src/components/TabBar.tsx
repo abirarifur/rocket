@@ -1,6 +1,6 @@
 'use client';
 
-import { Layers, Plus, X } from 'lucide-react';
+import { Box, Layers, Plus, X } from 'lucide-react';
 import { useApp } from '@/store/appStore';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +34,8 @@ export function TabBar() {
           >
             {t.kind === 'environment' ? (
               <Layers className="h-3.5 w-3.5 shrink-0 text-primary" />
+            ) : t.kind === 'collection' ? (
+              <Box className="h-3.5 w-3.5 shrink-0 text-primary" />
             ) : (
               <span className="text-[0.6rem] font-bold shrink-0" style={{ color: METHOD_COLOR[t.method] ?? 'var(--muted)' }}>
                 {t.method}

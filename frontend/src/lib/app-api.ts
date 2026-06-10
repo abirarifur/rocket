@@ -1,7 +1,7 @@
 'use client';
 
 import { API_BASE } from './api';
-import type { RequestDefinition } from '@rocket/types';
+import type { RequestAuth, RequestDefinition } from '@rocket/types';
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}/api${path}`, {
@@ -45,6 +45,8 @@ export interface CollectionFull {
   name: string;
   description: string | null;
   variables: unknown[];
+  // auth is RequestAuth from @rocket/types (collection-level, inherited by requests)
+  auth?: RequestAuth | null;
   // tree is CollectionNode[] from @rocket/types
   tree: unknown[];
 }
@@ -90,7 +92,7 @@ export const createCollection = (workspaceId: string, name: string) =>
 
 export const updateCollection = (
   id: string,
-  patch: { name?: string; description?: string; tree?: unknown[]; variables?: unknown[] },
+  patch: { name?: string; description?: string; tree?: unknown[]; variables?: unknown[]; auth?: RequestAuth },
 ) => req<CollectionFull>(`/collections/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
 
 export const deleteCollection = (id: string) =>
@@ -113,6 +115,9 @@ export const sendRequest = (
 
 export const updateCollectionVariables = (id: string, variables: unknown[]) =>
   updateCollection(id, { variables });
+
+export const updateCollectionAuth = (id: string, auth: RequestAuth) =>
+  updateCollection(id, { auth });
 
 export interface UploadResult {
   key: string;

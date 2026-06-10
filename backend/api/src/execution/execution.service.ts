@@ -2,6 +2,7 @@ import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
 import type {
   ProxyError,
   ProxyResponse,
+  RequestAuth,
   RequestDefinition,
   RunScriptRequest,
   RunScriptResult,
@@ -37,7 +38,16 @@ export class ExecutionService {
 
   constructor(private readonly storage: StorageService) {}
 
-  async executeOne(request: RequestDefinition, vars: Record<string, string>): Promise<ExecutionResult> {
+  async executeOne(
+    request: RequestDefinition,
+    vars: Record<string, string>,
+    inheritedAuth?: RequestAuth | null,
+  ): Promise<ExecutionResult> {
+    // Requests with auth type "inherit" use the collection/folder auth (or none).
+    request =
+      request.auth?.type === 'inherit'
+        ? { ...request, auth: inheritedAuth && inheritedAuth.type !== 'inherit' ? inheritedAuth : { type: 'none' } }
+        : request;
     const working = { ...vars };
     const setEnv: Record<string, string> = {};
     const setLocal: Record<string, string> = {};
