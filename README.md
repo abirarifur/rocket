@@ -89,6 +89,19 @@ pnpm stack:up      # build + run the whole project in Docker
   encryption at rest, Postman import/export, and public mock serving over HTTP (via SWC transform
   so NestJS DI metadata is emitted under Vitest).
 
+## Parity gaps closed
+
+Beyond the phased roadmap, these Postman-parity gaps are now implemented:
+
+- **`pm.sendRequest`** — scripts can make chained HTTP calls (`await pm.sendRequest(...)`),
+  routed through the proxy so SSRF protection still applies
+- **Global (team) variables** — a team-wide scope (lowest precedence: global < collection <
+  environment), secrets encrypted, with a 🌐 Globals editor
+- **Drag-and-drop reordering** of requests/folders in the collection tree
+- **OpenAPI YAML** import (in addition to JSON)
+- **Dynamic mock path params** — routes match `:param` and `*` wildcards (e.g. `/users/:id`)
+- **Ownership transfer** — an owner can hand off the team (they become an admin)
+
 ## Production readiness (Phase 10, in progress)
 
 - **Security headers** via Helmet on the API.

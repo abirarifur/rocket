@@ -34,3 +34,18 @@ export const ForkCollectionSchema = z.object({
   name: z.string().min(1).max(120).optional(),
 });
 export type ForkCollectionDto = z.infer<typeof ForkCollectionSchema>;
+
+export const SetGlobalsSchema = z.object({
+  variables: z.array(
+    z.object({
+      key: z.string(),
+      value: z.string().default(''),
+      enabled: z.boolean().default(true),
+      secret: z.boolean().default(false),
+    }),
+  ),
+});
+export type SetGlobalsDto = z.infer<typeof SetGlobalsSchema>;
+
+export const TransferOwnershipSchema = z.object({ userId: z.string().min(1) });
+export type TransferOwnershipDto = z.infer<typeof TransferOwnershipSchema>;

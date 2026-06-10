@@ -185,7 +185,8 @@ function ScriptEditor({
       />
       <p style={{ color: 'var(--muted)', fontSize: '0.72rem', marginTop: '0.4rem' }}>
         Sandboxed JS · <code>pm.environment</code>, <code>pm.variables</code>, <code>pm.request</code>,{' '}
-        <code>pm.response</code>, <code>pm.test</code>, <code>pm.expect</code>, <code>console.log</code>
+        <code>pm.response</code>, <code>pm.test</code>, <code>pm.expect</code>,{' '}
+        <code>await pm.sendRequest()</code>, <code>console.log</code>
       </p>
     </div>
   );

@@ -66,6 +66,61 @@ export function addNode(
   });
 }
 
+/** Remove a node anywhere in the tree, returning it and the pruned tree. */
+export function extractNode(
+  tree: CollectionNode[],
+  nodeId: string,
+): { node: CollectionNode | null; tree: CollectionNode[] } {
+  let found: CollectionNode | null = null;
+  const prune = (nodes: CollectionNode[]): CollectionNode[] => {
+    const out: CollectionNode[] = [];
+    for (const n of nodes) {
+      if (n.id === nodeId) {
+        found = n;
+        continue;
+      }
+      out.push(n.type === 'folder' ? { ...n, children: prune(n.children) } : n);
+    }
+    return out;
+  };
+  const pruned = prune(tree);
+  return { node: found, tree: pruned };
+}
+
+/** Insert a node immediately before the target node (in the target's sibling list). */
+export function insertBefore(
+  tree: CollectionNode[],
+  targetId: string,
+  node: CollectionNode,
+): CollectionNode[] {
+  const out: CollectionNode[] = [];
+  let inserted = false;
+  for (const n of tree) {
+    if (n.id === targetId) {
+      out.push(node);
+      inserted = true;
+    }
+    out.push(n.type === 'folder' ? { ...n, children: insertBefore(n.children, targetId, node) } : n);
+  }
+  return inserted ? renumber(out) : out;
+}
+
+/** Reorder so `dragId` sits just before `targetId` anywhere in the tree. */
+export function moveBefore(
+  tree: CollectionNode[],
+  dragId: string,
+  targetId: string,
+): CollectionNode[] {
+  if (dragId === targetId) return tree;
+  const { node, tree: without } = extractNode(tree, dragId);
+  if (!node) return tree;
+  return insertBefore(without, targetId, node);
+}
+
+function renumber(nodes: CollectionNode[]): CollectionNode[] {
+  return nodes.map((n, i) => ({ ...n, order: i }));
+}
+
 let counter = 0;
 /** Client-side id for new nodes (server stores them verbatim in the tree JSON). */
 export function newId(prefix: string): string {

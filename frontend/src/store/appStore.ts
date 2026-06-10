@@ -11,6 +11,7 @@ import {
   emptyFolder,
   emptyRequestNode,
   findRequest,
+  moveBefore,
   newId,
   removeNode,
   renameNode,
@@ -69,6 +70,7 @@ interface AppState {
   addRequest: (collectionId: string, folderId: string | null) => Promise<void>;
   addFolder: (collectionId: string, folderId: string | null) => Promise<void>;
   rename: (collectionId: string, nodeId: string, name: string) => Promise<void>;
+  moveNode: (collectionId: string, dragId: string, targetId: string) => Promise<void>;
   deleteNode: (collectionId: string, nodeId: string) => Promise<void>;
   deleteCollection: (id: string) => Promise<void>;
   forkCollection: (collectionId: string, name?: string) => Promise<void>;
@@ -305,6 +307,10 @@ export const useApp = create<AppState>((set, get) => ({
 
   async rename(collectionId, nodeId, name) {
     await mutateTree(get, set, collectionId, (tree) => renameNode(tree, nodeId, name));
+  },
+
+  async moveNode(collectionId, dragId, targetId) {
+    await mutateTree(get, set, collectionId, (tree) => moveBefore(tree as Tree, dragId, targetId));
   },
 
   async deleteNode(collectionId, nodeId) {

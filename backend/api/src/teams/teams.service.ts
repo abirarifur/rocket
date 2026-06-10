@@ -134,6 +134,31 @@ export class TeamsService {
     return { ok: true };
   }
 
+  /** Transfer ownership: only the current OWNER can hand off; they become ADMIN. */
+  async transferOwnership(userId: string, teamId: string, targetUserId: string) {
+    const membership = await this.prisma.teamMembership.findUnique({
+      where: { userId_teamId: { userId, teamId } },
+    });
+    if (membership?.role !== TeamRole.OWNER) {
+      throw new ForbiddenException('Only the owner can transfer ownership');
+    }
+    const target = await this.prisma.teamMembership.findUnique({
+      where: { userId_teamId: { userId: targetUserId, teamId } },
+    });
+    if (!target) throw new NotFoundException('Member not found');
+    await this.prisma.$transaction([
+      this.prisma.teamMembership.update({
+        where: { userId_teamId: { userId: targetUserId, teamId } },
+        data: { role: TeamRole.OWNER },
+      }),
+      this.prisma.teamMembership.update({
+        where: { userId_teamId: { userId, teamId } },
+        data: { role: TeamRole.ADMIN },
+      }),
+    ]);
+    return { ok: true };
+  }
+
   async removeMember(userId: string, teamId: string, targetUserId: string) {
     await this.tenancy.assertTeamRole(userId, teamId, 'ADMIN');
     const target = await this.prisma.teamMembership.findUnique({

@@ -63,6 +63,23 @@ export const forkCollection = (collectionId: string, workspaceId: string, name?:
     body: JSON.stringify({ workspaceId, name }),
   });
 
+export interface GlobalVar {
+  key: string;
+  value: string;
+  enabled: boolean;
+  secret: boolean;
+}
+
+export const getGlobals = (teamId: string) => req<GlobalVar[]>(`/teams/${teamId}/globals`);
+export const setGlobals = (teamId: string, variables: GlobalVar[]) =>
+  req<GlobalVar[]>(`/teams/${teamId}/globals`, { method: 'PUT', body: JSON.stringify({ variables }) });
+
+export const transferOwnership = (teamId: string, userId: string) =>
+  req<{ ok: true }>(`/teams/${teamId}/transfer-ownership`, {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  });
+
 export const ROLE_RANK: Record<Role, number> = { VIEWER: 0, EDITOR: 1, ADMIN: 2, OWNER: 3 };
 export const canEdit = (role: Role | null) => !!role && ROLE_RANK[role] >= ROLE_RANK.EDITOR;
 export const canAdmin = (role: Role | null) => !!role && ROLE_RANK[role] >= ROLE_RANK.ADMIN;

@@ -10,6 +10,7 @@ import { ResponseViewer } from '@/components/ResponseViewer';
 import { EnvironmentBar } from '@/components/EnvironmentBar';
 import { WorkspaceBar } from '@/components/WorkspaceBar';
 import { MembersBar } from '@/components/MembersBar';
+import { GlobalsBar } from '@/components/GlobalsBar';
 import { PresenceBar } from '@/components/PresenceBar';
 
 export default function AppPage() {
@@ -54,6 +55,7 @@ export default function AppPage() {
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
           <PresenceBar />
           <EnvironmentBar />
+          <GlobalsBar />
           <MembersBar />
           <span style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>{email}</span>
           <button

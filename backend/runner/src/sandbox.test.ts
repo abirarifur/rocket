@@ -22,20 +22,20 @@ const resp = {
   sizeBytes: 24,
 };
 
-describe('runScript', () => {
-  it('runs a pre-request script that sets a variable', () => {
+describe('runScript', async () => {
+  it('runs a pre-request script that sets a variable', async () => {
     const input: RunScriptRequest = {
       phase: 'pre',
       script: 'pm.environment.set("token", "abc" + 123);',
       request: baseReq,
       variables: {},
     };
-    const r = runScript(input);
+    const r = await runScript(input, "http://localhost:4100");
     expect(r.error).toBeUndefined();
     expect(r.setEnv.token).toBe('abc123');
   });
 
-  it('runs test assertions (pass + fail)', () => {
+  it('runs test assertions (pass + fail)', async () => {
     const input: RunScriptRequest = {
       phase: 'test',
       script: `
@@ -47,14 +47,14 @@ describe('runScript', () => {
       response: resp,
       variables: {},
     };
-    const r = runScript(input);
+    const r = await runScript(input, "http://localhost:4100");
     expect(r.tests).toHaveLength(3);
     expect(r.tests[0]?.passed).toBe(true);
     expect(r.tests[1]?.passed).toBe(true);
     expect(r.tests[2]?.passed).toBe(false);
   });
 
-  it('terminates infinite loops via timeout', () => {
+  it('terminates infinite loops via timeout', async () => {
     const input: RunScriptRequest = {
       phase: 'pre',
       script: 'while (true) {}',
@@ -62,18 +62,18 @@ describe('runScript', () => {
       variables: {},
       timeoutMs: 200,
     };
-    const r = runScript(input);
+    const r = await runScript(input, "http://localhost:4100");
     expect(r.error).toBeTruthy();
   });
 
-  it('has no access to require or process', () => {
+  it('has no access to require or process', async () => {
     const input: RunScriptRequest = {
       phase: 'pre',
       script: 'pm.environment.set("leak", typeof process + "/" + typeof require);',
       request: baseReq,
       variables: {},
     };
-    const r = runScript(input);
+    const r = await runScript(input, "http://localhost:4100");
     expect(r.setEnv.leak).toBe('undefined/undefined');
   });
 });

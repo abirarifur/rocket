@@ -52,10 +52,12 @@ export class MocksService {
     if (!mock || !mock.enabled) return null;
     const routes = mock.routes as unknown as MockRoute[];
     const want = normalize(path);
+    const candidates = routes.filter((r) => r.method.toUpperCase() === method.toUpperCase());
+    // Prefer an exact match, then fall back to pattern routes (:param / *).
     return (
-      routes.find(
-        (r) => r.method.toUpperCase() === method.toUpperCase() && normalize(r.path) === want,
-      ) ?? null
+      candidates.find((r) => normalize(r.path) === want) ??
+      candidates.find((r) => pathPattern(normalize(r.path)).test(want)) ??
+      null
     );
   }
 
@@ -72,6 +74,19 @@ function normalize(p: string): string {
   if (!s.startsWith('/')) s = '/' + s;
   if (s.length > 1 && s.endsWith('/')) s = s.slice(0, -1);
   return s;
+}
+
+/** Compile a route path with :param / * placeholders into a matcher regex. */
+function pathPattern(routePath: string): RegExp {
+  const body = routePath
+    .split('/')
+    .map((seg) => {
+      if (seg.startsWith(':')) return '[^/]+'; // :id matches one segment
+      if (seg === '*') return '.*'; // wildcard matches the rest
+      return seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    })
+    .join('/');
+  return new RegExp(`^${body}$`);
 }
 
 /** Turn a collection tree into mock routes (method + path from each request URL). */

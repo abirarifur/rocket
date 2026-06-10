@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import type { Variable } from '@rocket/types';
+import * as yaml from 'js-yaml';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
 import { fromPostman, toPostman, type InternalCollection } from './postman';
@@ -21,11 +22,20 @@ export class InteropService {
   async importCollection(userId: string, workspaceId: string, type: ImportType, content: string) {
     await this.tenancy.assertWorkspaceAccess(userId, workspaceId, 'EDITOR');
 
+    // OpenAPI may be YAML; everything else is JSON.
     let parsed: unknown;
     try {
       parsed = JSON.parse(content);
     } catch {
-      throw new BadRequestException('Content is not valid JSON');
+      if (type === 'openapi') {
+        try {
+          parsed = yaml.load(content);
+        } catch {
+          throw new BadRequestException('Content is not valid JSON or YAML');
+        }
+      } else {
+        throw new BadRequestException('Content is not valid JSON');
+      }
     }
 
     let internal: InternalCollection;

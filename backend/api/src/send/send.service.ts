@@ -79,11 +79,14 @@ export class SendService {
     });
   }
 
-  /** Build the resolved variable map for a workspace's collection + environment. */
+  /** Resolved variable map: global (team) < collection < environment. */
   async gatherVariables(userId: string, dto: SendRequestDto): Promise<Record<string, string>> {
+    const { workspace } = await this.tenancy.assertWorkspaceAccess(userId, dto.workspaceId);
+    const team = await this.prisma.team.findUnique({ where: { id: workspace.teamId } });
+    const globalVars = this.decrypt((team?.globals as Variable[] | undefined) ?? []);
+
     let collectionVars: Variable[] = [];
     let environmentVars: Variable[] = [];
-
     if (dto.collectionId) {
       const { collection } = await this.tenancy.assertCollectionAccess(userId, dto.collectionId);
       collectionVars = this.decrypt(collection.variables as Variable[]);
@@ -92,7 +95,7 @@ export class SendService {
       const { environment } = await this.tenancy.assertEnvironmentAccess(userId, dto.environmentId);
       environmentVars = this.decrypt(environment.variables as Variable[]);
     }
-    return resolveVariableMap(collectionVars, environmentVars);
+    return resolveVariableMap(globalVars, collectionVars, environmentVars);
   }
 
   decrypt(vars: Variable[]): Variable[] {

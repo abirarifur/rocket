@@ -34,8 +34,31 @@ const METHOD_COLOR: Record<string, string> = {
 };
 
 function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectionId: string }) {
-  const { activeNodeId, role, selectRequest, addRequest, rename, deleteNode } = useApp();
+  const { activeNodeId, role, selectRequest, addRequest, rename, deleteNode, moveNode } = useApp();
   const editable = canEdit(role);
+
+  // Native HTML5 drag-and-drop reordering (editors only).
+  const dragProps = (nodeId: string) =>
+    editable
+      ? {
+          draggable: true,
+          onDragStart: (e: React.DragEvent) => {
+            e.stopPropagation();
+            e.dataTransfer.setData('text/plain', nodeId);
+            e.dataTransfer.effectAllowed = 'move';
+          },
+          onDragOver: (e: React.DragEvent) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+          },
+          onDrop: (e: React.DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const dragId = e.dataTransfer.getData('text/plain');
+            if (dragId && dragId !== nodeId) void moveNode(collectionId, dragId, nodeId);
+          },
+        }
+      : {};
 
   return (
     <ul style={{ listStyle: 'none', margin: 0, paddingLeft: '0.85rem' }}>
@@ -46,6 +69,7 @@ function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectio
             <li key={node.id}>
               <div
                 onClick={() => selectRequest(collectionId, node.id)}
+                {...dragProps(node.id)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -84,6 +108,7 @@ function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectio
         return (
           <li key={node.id}>
             <div
+              {...dragProps(node.id)}
               style={{
                 display: 'flex',
                 alignItems: 'center',

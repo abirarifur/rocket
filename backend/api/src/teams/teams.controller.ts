@@ -1,21 +1,52 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard, type AccessTokenPayload } from '../auth/jwt-auth.guard';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { TeamsService } from './teams.service';
+import { GlobalsService } from './globals.service';
 import {
   AcceptInviteSchema,
   ChangeRoleSchema,
   InviteSchema,
+  SetGlobalsSchema,
+  TransferOwnershipSchema,
   type AcceptInviteDto,
   type ChangeRoleDto,
   type InviteDto,
+  type SetGlobalsDto,
+  type TransferOwnershipDto,
 } from './teams.schemas';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class TeamsController {
-  constructor(private readonly teams: TeamsService) {}
+  constructor(
+    private readonly teams: TeamsService,
+    private readonly globals: GlobalsService,
+  ) {}
+
+  @Get('teams/:teamId/globals')
+  getGlobals(@CurrentUser() u: AccessTokenPayload, @Param('teamId') teamId: string) {
+    return this.globals.get(u.sub, teamId);
+  }
+
+  @Put('teams/:teamId/globals')
+  setGlobals(
+    @CurrentUser() u: AccessTokenPayload,
+    @Param('teamId') teamId: string,
+    @Body(new ZodValidationPipe(SetGlobalsSchema)) dto: SetGlobalsDto,
+  ) {
+    return this.globals.set(u.sub, teamId, dto.variables);
+  }
+
+  @Post('teams/:teamId/transfer-ownership')
+  transfer(
+    @CurrentUser() u: AccessTokenPayload,
+    @Param('teamId') teamId: string,
+    @Body(new ZodValidationPipe(TransferOwnershipSchema)) dto: TransferOwnershipDto,
+  ) {
+    return this.teams.transferOwnership(u.sub, teamId, dto.userId);
+  }
 
   @Get('teams/:teamId/members')
   members(@CurrentUser() u: AccessTokenPayload, @Param('teamId') teamId: string) {

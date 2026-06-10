@@ -14,8 +14,8 @@ app.post('/run', async (req, reply) => {
   if (!parsed.success) {
     return reply.code(400).send({ error: 'Invalid run request' });
   }
-  // Execution is synchronous and time-boxed inside the sandbox.
-  return reply.send(runScript(parsed.data));
+  // Time-boxed inside the sandbox; awaits async pm.sendRequest if used.
+  return reply.send(await runScript(parsed.data, config.proxyBase));
 });
 
 app

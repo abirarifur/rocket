@@ -115,6 +115,12 @@ export class RunsService {
       const requests = flatten(collection.tree as unknown as CollectionNode[]);
       const collectionVars = this.decrypt(collection.variables as unknown as Variable[]);
 
+      const workspace = await this.prisma.workspace.findUnique({ where: { id: run.workspaceId } });
+      const team = workspace
+        ? await this.prisma.team.findUnique({ where: { id: workspace.teamId } })
+        : null;
+      const globalVars = this.decrypt((team?.globals as unknown as Variable[] | undefined) ?? []);
+
       let environmentVars: Variable[] = [];
       if (run.environmentId) {
         const env = await this.prisma.environment.findUnique({ where: { id: run.environmentId } });
@@ -123,7 +129,7 @@ export class RunsService {
 
       const rows = parseDataRows(data);
       const iterations = rows.length > 0 ? rows.length : run.iterations;
-      const baseMap = resolveVariableMap(collectionVars, environmentVars);
+      const baseMap = resolveVariableMap(globalVars, collectionVars, environmentVars);
 
       const report: unknown[] = [];
       let passed = 0;

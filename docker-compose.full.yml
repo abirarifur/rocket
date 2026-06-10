@@ -122,6 +122,7 @@ services:
     restart: unless-stopped
     environment:
       RUNNER_PORT: "4200"
+      PROXY_BASE_URL: http://proxy:4100
       WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3001}
     ports:
       - "4200:4200"

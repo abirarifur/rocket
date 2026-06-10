@@ -43,6 +43,7 @@ function MembersModal({
   const [inviteRole, setInviteRole] = useState<Role>('VIEWER');
   const [msg, setMsg] = useState<string | null>(null);
   const admin = canAdmin(myRole);
+  const isOwner = myRole === 'OWNER';
 
   const reload = () => teams.listMembers(teamId).then(setMembers).catch(() => undefined);
   useEffect(() => {
@@ -113,7 +114,21 @@ function MembersModal({
                   <span style={{ color: 'var(--muted)' }}>{m.role}</span>
                 )}
               </td>
-              <td style={{ textAlign: 'right', width: 40 }}>
+              <td style={{ textAlign: 'right', width: 90 }}>
+                {isOwner && m.role !== 'OWNER' && (
+                  <button
+                    title="Transfer ownership"
+                    onClick={async () => {
+                      if (window.confirm(`Make ${m.email} the owner? You will become an Admin.`)) {
+                        await teams.transferOwnership(teamId, m.userId);
+                        void reload();
+                      }
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}
+                  >
+                    👑
+                  </button>
+                )}
                 {admin && m.role !== 'OWNER' && (
                   <button
                     title="Remove"
