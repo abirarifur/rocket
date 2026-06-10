@@ -1,0 +1,36 @@
+# Routes the web app and API on separate hosts. WebSocket (socket.io) upgrades
+# pass through nginx-ingress automatically. /metrics is NOT exposed here — it is
+# scraped in-cluster via the pod annotations; restrict it with a NetworkPolicy.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rocket
+  namespace: rocket
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [app.rocket.example.com, api.rocket.example.com]
+      secretName: rocket-tls
+  rules:
+    - host: app.rocket.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rocket-web
+                port: { number: 3001 }
+    - host: api.rocket.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rocket-api
+                port: { number: 4000 }

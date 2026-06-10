@@ -1,0 +1,32 @@
+# Optional monitoring stack: Prometheus (scrapes the API /metrics) + Grafana.
+# Run the app first (`pnpm stack:up`), then:
+#   docker compose -f docker-compose.monitoring.yml up -d
+#   → Prometheus http://localhost:9091 · Grafana http://localhost:3030 (anon)
+# It joins the app's network so it can reach the `api` service by name.
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./ops/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9091:9090"
+    networks: [rocket]
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: rocket
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    ports:
+      - "3030:3000"
+    networks: [rocket]
+
+networks:
+  rocket:
+    external: true
+    name: rocket_default

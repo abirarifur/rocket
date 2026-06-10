@@ -1,0 +1,42 @@
+# Non-secret configuration. Backing services (Postgres/Redis/S3) are assumed to
+# be managed (RDS/Cloud SQL, ElastiCache/Memorystore, S3/GCS) and referenced via
+# the Secret below. Internal service DNS is used for api<->proxy<->runner.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rocket-config
+  namespace: rocket
+data:
+  NODE_ENV: "production"
+  API_PORT: "4000"
+  PROXY_PORT: "4100"
+  RUNNER_PORT: "4200"
+  PROXY_BASE_URL: "http://rocket-proxy:4100"
+  RUNNER_BASE_URL: "http://rocket-runner:4200"
+  WEB_ORIGIN: "https://app.rocket.example.com"
+  OAUTH_CALLBACK_BASE: "https://api.rocket.example.com"
+  S3_REGION: "us-east-1"
+  S3_BUCKET: "rocket-artifacts"
+  PROXY_BLOCKED_CIDRS: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,::1/128,fc00::/7"
+---
+# Template only — DO NOT commit real values. Create from a secrets manager
+# (Vault / AWS Secrets Manager / Sealed Secrets). Values shown are placeholders.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rocket-secrets
+  namespace: rocket
+type: Opaque
+stringData:
+  DATABASE_URL: "postgresql://USER:PASS@your-postgres-host:5432/rocket?schema=public&connection_limit=20"
+  REDIS_URL: "redis://your-redis-host:6379"
+  S3_ENDPOINT: "https://s3.us-east-1.amazonaws.com"
+  S3_ACCESS_KEY: "REPLACE_ME"
+  S3_SECRET_KEY: "REPLACE_ME"
+  JWT_ACCESS_SECRET: "REPLACE_ME"
+  JWT_REFRESH_SECRET: "REPLACE_ME"
+  ENCRYPTION_KEY: "REPLACE_ME"
+  GOOGLE_CLIENT_ID: ""
+  GOOGLE_CLIENT_SECRET: ""
+  GITHUB_CLIENT_ID: ""
+  GITHUB_CLIENT_SECRET: ""

@@ -1,0 +1,22 @@
+# Applies database migrations before/independent of the API rollout. Run this
+# (e.g. via a Helm pre-install/pre-upgrade hook or `kubectl apply`) before
+# scaling up the API so multiple replicas don't race on migrations.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rocket-migrate
+  namespace: rocket
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: ghcr.io/your-org/rocket-api:latest
+          command: ["pnpm", "--filter", "@rocket/api", "exec", "prisma", "migrate", "deploy"]
+          workingDir: /app/api
+          envFrom:
+            - configMapRef: { name: rocket-config }
+            - secretRef: { name: rocket-secrets }

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rocket-web
+  namespace: rocket
+  labels: { app: rocket-web }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: rocket-web }
+  template:
+    metadata:
+      labels: { app: rocket-web }
+    spec:
+      containers:
+        - name: web
+          # NEXT_PUBLIC_API_BASE_URL is baked at build time; build the image with
+          #   --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.rocket.example.com
+          image: ghcr.io/your-org/rocket-web:latest
+          ports: [{ containerPort: 3001 }]
+          readinessProbe:
+            httpGet: { path: /, port: 3001 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: { cpu: "100m", memory: "192Mi" }
+            limits: { cpu: "500m", memory: "384Mi" }
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rocket-web
+  namespace: rocket
+spec:
+  selector: { app: rocket-web }
+  ports: [{ port: 3001, targetPort: 3001 }]

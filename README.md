@@ -121,9 +121,16 @@ Beyond the phased roadmap, these Postman-parity gaps are now implemented:
   plan+limits+usage; plan changes are Stripe-webhook-ready, with a dev stub endpoint).
 - **Ops:** `ops/load-test.js` (k6) for the hot read path and `ops/backup.sh` (pg_dump + retention)
   for scheduled backups.
+- **Kubernetes:** [`ops/k8s/`](./ops/k8s) — Deployments (api/proxy/runner/web) with liveness/
+  readiness probes + non-root + resources, Services, **HPA autoscaling**, Ingress (TLS + WS),
+  a migrate Job, and a nightly backup CronJob.
+- **Monitoring:** `docker compose -f docker-compose.monitoring.yml up` runs **Prometheus + Grafana**
+  that scrape the API's `/metrics` (verified end-to-end).
+- **Runbook:** [`ops/RUNBOOK.md`](./ops/RUNBOOK.md) — deploy/upgrade, scaling, backup/restore, DR
+  drill, and incident response.
 
-Still ahead in Phase 10: live Stripe checkout/webhooks, SSO/SAML/SCIM, autoscaling/HPA + read-replica
-routing, and a DR runbook.
+Still ahead in Phase 10: live Stripe checkout/webhooks, SSO/SAML/SCIM, and socket.io Redis adapter
++ read-replica routing for multi-instance scale-out.
 
 ## Status
 

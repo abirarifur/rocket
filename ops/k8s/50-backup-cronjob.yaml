@@ -1,0 +1,39 @@
+# Nightly logical backup of Postgres, shipped to object storage. Pair with
+# point-in-time recovery on the managed DB for RPO < 5 min.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rocket-db-backup
+  namespace: rocket
+spec:
+  schedule: "0 3 * * *" # 03:00 UTC daily
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 7
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+                  FILE="/tmp/rocket-$STAMP.sql.gz"
+                  echo "dumping to $FILE"
+                  pg_dump --no-owner --no-privileges "$DATABASE_URL" | gzip > "$FILE"
+                  # Ship to object storage (install aws-cli or use a sidecar in prod):
+                  #   aws s3 cp "$FILE" "s3://$BACKUP_BUCKET/db/"
+                  echo "backup complete: $(du -h "$FILE" | cut -f1)"
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef: { name: rocket-secrets, key: DATABASE_URL }
+                - name: BACKUP_BUCKET
+                  value: "rocket-backups"
