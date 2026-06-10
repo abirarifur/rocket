@@ -67,7 +67,7 @@ export class WorkspacesService {
 
   /** All workspaces across teams the user belongs to. */
   async listForUser(userId: string) {
-    const memberships = await this.prisma.teamMembership.findMany({
+    const memberships = await this.prisma.reader.teamMembership.findMany({
       where: { userId },
       include: { team: { include: { workspaces: { orderBy: { createdAt: 'asc' } } } } },
     });
@@ -86,7 +86,7 @@ export class WorkspacesService {
   /** Workspace detail with collection summaries. */
   async getWithCollections(userId: string, workspaceId: string) {
     const { workspace } = await this.tenancy.assertWorkspaceAccess(userId, workspaceId);
-    const collections = await this.prisma.collection.findMany({
+    const collections = await this.prisma.reader.collection.findMany({
       where: { workspaceId },
       orderBy: { createdAt: 'asc' },
       select: { id: true, name: true, description: true, updatedAt: true },

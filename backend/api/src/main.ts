@@ -4,9 +4,15 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { LoggingInterceptor, requestIdMiddleware } from './common/request-context';
+import { RedisIoAdapter } from './collaboration/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: false });
+
+  // Cross-replica socket.io fan-out via Redis pub/sub.
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   // Security headers. CSP is left to the frontend/CDN; this is a JSON API.
   app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));

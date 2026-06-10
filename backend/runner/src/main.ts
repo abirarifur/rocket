@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { RunScriptRequestSchema } from '@rocket/types';
 import { config } from './config.js';
-import { runScript } from './sandbox.js';
+import { runScriptIsolated } from './sandbox-isolated.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: config.corsOrigin });
@@ -14,8 +14,8 @@ app.post('/run', async (req, reply) => {
   if (!parsed.success) {
     return reply.code(400).send({ error: 'Invalid run request' });
   }
-  // Time-boxed inside the sandbox; awaits async pm.sendRequest if used.
-  return reply.send(await runScript(parsed.data, config.proxyBase));
+  // Isolated worker (memory-capped, hard-killable) in prod; in-process in dev.
+  return reply.send(await runScriptIsolated(parsed.data, config.proxyBase));
 });
 
 app

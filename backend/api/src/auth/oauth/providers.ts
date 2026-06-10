@@ -17,7 +17,7 @@ export interface ProviderConfig {
 
 /** Returns the configured providers (only those with client id + secret set). */
 export function configuredProviders(): string[] {
-  const ids = ['google', 'github'];
+  const ids = ['google', 'github', 'oidc'];
   const list = ids.filter((id) => getProviderConfig(id));
   // A dev-only mock provider for local testing without real credentials.
   if (process.env.MOCK_OAUTH === '1' && process.env.NODE_ENV !== 'production') list.push('mock');
@@ -49,6 +49,22 @@ export function getProviderConfig(provider: string): ProviderConfig | null {
       authorizeUrl: 'https://github.com/login/oauth/authorize',
       tokenUrl: 'https://github.com/login/oauth/access_token',
       scope: 'read:user user:email',
+    };
+  }
+  if (provider === 'oidc') {
+    // Generic OIDC (Okta / Azure AD / Auth0 / Keycloak / ...).
+    const clientId = process.env.OIDC_CLIENT_ID;
+    const clientSecret = process.env.OIDC_CLIENT_SECRET;
+    const authorizeUrl = process.env.OIDC_AUTHORIZE_URL;
+    const tokenUrl = process.env.OIDC_TOKEN_URL;
+    if (!clientId || !clientSecret || !authorizeUrl || !tokenUrl) return null;
+    return {
+      id: 'oidc',
+      clientId,
+      clientSecret,
+      authorizeUrl,
+      tokenUrl,
+      scope: process.env.OIDC_SCOPE ?? 'openid email profile',
     };
   }
   return null;
@@ -119,6 +135,14 @@ export async function fetchProfile(provider: string, accessToken: string): Promi
       email = emails.find((e) => e.primary && e.verified)?.email ?? emails[0]?.email;
     }
     return { providerAccountId: String(u.id), email: email ?? `${u.login}@users.noreply.github.com`, name: u.name ?? u.login };
+  }
+  if (provider === 'oidc') {
+    const userinfo = process.env.OIDC_USERINFO_URL;
+    if (!userinfo) throw new Error('OIDC_USERINFO_URL not configured');
+    const u = (await (
+      await fetch(userinfo, { headers: { Authorization: `Bearer ${accessToken}` } })
+    ).json()) as { sub: string; email: string; name?: string; preferred_username?: string };
+    return { providerAccountId: u.sub, email: u.email, name: u.name ?? u.preferred_username };
   }
   throw new Error(`Provider ${provider} is not configured`);
 }

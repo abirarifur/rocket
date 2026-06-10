@@ -6,6 +6,7 @@ import { API_BASE } from '@/lib/api';
 const LABELS: Record<string, string> = {
   google: 'Continue with Google',
   github: 'Continue with GitHub',
+  oidc: 'Sign in with SSO',
   mock: 'Continue with Mock (dev)',
 };
 
