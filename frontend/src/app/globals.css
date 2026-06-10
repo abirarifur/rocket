@@ -56,3 +56,19 @@ body {
 a {
   color: var(--accent);
 }
+
+/* Sidebar rows: subtle hover + reveal the action buttons on hover (Postman-style). */
+.tree-row:hover {
+  background: rgba(127, 127, 127, 0.1) !important;
+}
+.kebab {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.tree-row:hover .kebab {
+  opacity: 0.85;
+}
+.kebab:hover {
+  opacity: 1 !important;
+  color: var(--text) !important;
+}

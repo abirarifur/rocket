@@ -11,6 +11,7 @@ import { RunModal } from './RunModal';
 import { ImportModal } from './ImportModal';
 import { OpsModal } from './OpsModal';
 import { CommentsModal } from './CommentsModal';
+import { ContextMenu, type MenuItem } from './ContextMenu';
 import { exportCollection } from '@/lib/interop-api';
 
 async function downloadExport(collectionId: string, name: string) {
@@ -34,9 +35,44 @@ const METHOD_COLOR: Record<string, string> = {
   OPTIONS: '#8a93a6',
 };
 
-function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectionId: string }) {
+type OpenMenu = (e: React.MouseEvent, items: MenuItem[]) => void;
+
+function Kebab({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      title="More"
+      className="kebab"
+      onClick={(e) => (e.stopPropagation(), onClick(e))}
+      style={miniBtn}
+    >
+      ⋯
+    </button>
+  );
+}
+
+function TreeNodes({
+  nodes,
+  collectionId,
+  openMenu,
+}: {
+  nodes: CollectionNode[];
+  collectionId: string;
+  openMenu: OpenMenu;
+}) {
   const { activeNodeId, role, selectRequest, addRequest, rename, deleteNode, moveNode } = useApp();
   const editable = canEdit(role);
+
+  const requestItems = (node: Extract<CollectionNode, { type: 'request' }>): MenuItem[] => [
+    { label: 'Rename', shortcut: 'Ctrl+E', onClick: () => { const n = window.prompt('Rename request', node.request.name); if (n) void rename(collectionId, node.id, n); } },
+    { divider: true },
+    { label: 'Delete', danger: true, shortcut: 'Del', onClick: () => void deleteNode(collectionId, node.id) },
+  ];
+  const folderItems = (node: Extract<CollectionNode, { type: 'folder' }>): MenuItem[] => [
+    { label: 'Add request', onClick: () => void addRequest(collectionId, node.id) },
+    { label: 'Rename', onClick: () => { const n = window.prompt('Rename folder', node.name); if (n) void rename(collectionId, node.id, n); } },
+    { divider: true },
+    { label: 'Delete', danger: true, onClick: () => void deleteNode(collectionId, node.id) },
+  ];
 
   // Native HTML5 drag-and-drop reordering (editors only).
   const dragProps = (nodeId: string) =>
@@ -70,6 +106,7 @@ function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectio
             <li key={node.id}>
               <div
                 onClick={() => selectRequest(collectionId, node.id)}
+                onContextMenu={(e) => editable && openMenu(e, requestItems(node))}
                 {...dragProps(node.id)}
                 style={{
                   display: 'flex',
@@ -93,15 +130,7 @@ function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectio
                   {node.request.method}
                 </span>
                 <span style={{ flex: 1, fontSize: '0.85rem' }}>{node.request.name}</span>
-                {editable && (
-                  <RowMenu
-                    onRename={() => {
-                      const name = window.prompt('Rename request', node.request.name);
-                      if (name) void rename(collectionId, node.id, name);
-                    }}
-                    onDelete={() => void deleteNode(collectionId, node.id)}
-                  />
-                )}
+                {editable && <Kebab onClick={(e) => openMenu(e, requestItems(node))} />}
               </div>
             </li>
           );
@@ -109,6 +138,7 @@ function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectio
         return (
           <li key={node.id}>
             <div
+              onContextMenu={(e) => editable && openMenu(e, folderItems(node))}
               {...dragProps(node.id)}
               style={{
                 display: 'flex',
@@ -117,46 +147,24 @@ function TreeNodes({ nodes, collectionId }: { nodes: CollectionNode[]; collectio
                 padding: '0.25rem 0.4rem',
                 fontSize: '0.85rem',
               }}
+              className="tree-row"
             >
               <span>📁</span>
               <span style={{ flex: 1 }}>{node.name}</span>
               {editable && (
                 <>
-                  <button
-                    title="Add request"
-                    onClick={() => void addRequest(collectionId, node.id)}
-                    style={miniBtn}
-                  >
+                  <button title="Add request" className="kebab" onClick={() => void addRequest(collectionId, node.id)} style={miniBtn}>
                     +
                   </button>
-                  <RowMenu
-                    onRename={() => {
-                      const name = window.prompt('Rename folder', node.name);
-                      if (name) void rename(collectionId, node.id, name);
-                    }}
-                    onDelete={() => void deleteNode(collectionId, node.id)}
-                  />
+                  <Kebab onClick={(e) => openMenu(e, folderItems(node))} />
                 </>
               )}
             </div>
-            <TreeNodes nodes={node.children} collectionId={collectionId} />
+            <TreeNodes nodes={node.children} collectionId={collectionId} openMenu={openMenu} />
           </li>
         );
       })}
     </ul>
-  );
-}
-
-function RowMenu({ onRename, onDelete }: { onRename: () => void; onDelete: () => void }) {
-  return (
-    <span style={{ display: 'flex', gap: 2 }}>
-      <button title="Rename" onClick={(e) => (e.stopPropagation(), onRename())} style={miniBtn}>
-        ✎
-      </button>
-      <button title="Delete" onClick={(e) => (e.stopPropagation(), onDelete())} style={miniBtn}>
-        🗑
-      </button>
-    </span>
   );
 }
 
@@ -205,6 +213,38 @@ export function Sidebar() {
   const [importOpen, setImportOpen] = useState(false);
   const [opsFor, setOpsFor] = useState<{ id: string; name: string } | null>(null);
   const [commentsFor, setCommentsFor] = useState<{ id: string; name: string } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
+
+  const openMenu = (e: React.MouseEvent, items: MenuItem[]) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenu({ x: e.clientX, y: e.clientY, items });
+  };
+
+  const collectionItems = (c: { id: string; name: string }): MenuItem[] => {
+    const items: MenuItem[] = [];
+    if (editable) {
+      items.push(
+        { label: 'Add request', onClick: () => void addRequest(c.id, null) },
+        { label: 'Add folder', onClick: () => void addFolder(c.id, null) },
+        { divider: true },
+      );
+    }
+    items.push({ label: 'Run collection', onClick: () => setRunFor({ id: c.id, name: c.name }) });
+    items.push({ divider: true });
+    items.push({ label: 'Comments', onClick: () => setCommentsFor({ id: c.id, name: c.name }) });
+    items.push({ label: 'Export (Postman v2.1)', onClick: () => void downloadExport(c.id, c.name) });
+    if (editable) {
+      items.push(
+        { label: 'Variables', onClick: async () => { await useApp.getState().loadCollection(c.id); setVarsFor(c.id); } },
+        { label: 'Mock / Monitor / Docs', onClick: () => setOpsFor({ id: c.id, name: c.name }) },
+        { label: 'Fork', shortcut: 'Ctrl+Alt+F', onClick: () => { const n = window.prompt('Fork name', `${c.name} (fork)`); if (n) void forkCollection(c.id, n); } },
+        { divider: true },
+        { label: 'Delete', danger: true, onClick: () => { if (window.confirm(`Delete collection "${c.name}"?`)) void deleteCollection(c.id); } },
+      );
+    }
+    return items;
+  };
 
   return (
     <aside
@@ -284,95 +324,27 @@ export function Sidebar() {
         .map((c) => (
         <div key={c.id} style={{ padding: '0.25rem 0.5rem' }}>
           <div
+            className="tree-row"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
               padding: '0.3rem 0.4rem',
+              borderRadius: 6,
               cursor: 'pointer',
             }}
             onClick={() => void toggleCollection(c.id)}
+            onContextMenu={(e) => openMenu(e, collectionItems(c))}
           >
             <span style={{ color: 'var(--muted)' }}>{searching || expanded[c.id] ? '▾' : '▸'}</span>
+            <span style={{ fontSize: '0.9rem' }}>📦</span>
             <strong style={{ flex: 1, fontSize: '0.88rem' }}>{c.name}</strong>
-            <button
-              title="Run collection"
-              onClick={(e) => (e.stopPropagation(), setRunFor({ id: c.id, name: c.name }))}
-              style={miniBtn}
-            >
-              ▶
-            </button>
-            <button
-              title="Export (Postman v2.1)"
-              onClick={(e) => (e.stopPropagation(), void downloadExport(c.id, c.name))}
-              style={miniBtn}
-            >
-              ↥
-            </button>
-            <button
-              title="Comments"
-              onClick={(e) => (e.stopPropagation(), setCommentsFor({ id: c.id, name: c.name }))}
-              style={miniBtn}
-            >
-              💬
-            </button>
             {editable && (
-              <>
-                <button
-                  title="Add request"
-                  onClick={(e) => (e.stopPropagation(), addRequest(c.id, null))}
-                  style={miniBtn}
-                >
-                  +req
-                </button>
-                <button
-                  title="Add folder"
-                  onClick={(e) => (e.stopPropagation(), addFolder(c.id, null))}
-                  style={miniBtn}
-                >
-                  +dir
-                </button>
-                <button
-                  title="Collection variables"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await useApp.getState().loadCollection(c.id);
-                    setVarsFor(c.id);
-                  }}
-                  style={miniBtn}
-                >
-                  {'{}'}
-                </button>
-                <button
-                  title="Fork into this workspace"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const name = window.prompt('Fork name', `${c.name} (fork)`);
-                    if (name) void forkCollection(c.id, name);
-                  }}
-                  style={miniBtn}
-                >
-                  ⑂
-                </button>
-                <button
-                  title="Mock / Monitor / Docs"
-                  onClick={(e) => (e.stopPropagation(), setOpsFor({ id: c.id, name: c.name }))}
-                  style={miniBtn}
-                >
-                  🚀
-                </button>
-                <button
-                  title="Delete collection"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm(`Delete collection "${c.name}"?`)) void deleteCollection(c.id);
-                  }}
-                  style={miniBtn}
-                >
-                  🗑
-                </button>
-              </>
+              <button title="Add request" className="kebab" onClick={(e) => (e.stopPropagation(), addRequest(c.id, null))} style={miniBtn}>
+                +
+              </button>
             )}
+            <Kebab onClick={(e) => openMenu(e, collectionItems(c))} />
           </div>
           {(searching || expanded[c.id]) && cache[c.id] && (
             <TreeNodes
@@ -382,6 +354,7 @@ export function Sidebar() {
                   : (cache[c.id]!.tree as CollectionNode[])
               }
               collectionId={c.id}
+              openMenu={openMenu}
             />
           )}
         </div>
@@ -408,6 +381,7 @@ export function Sidebar() {
           onClose={() => setCommentsFor(null)}
         />
       )}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
     </aside>
   );
 }
