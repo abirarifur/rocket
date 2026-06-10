@@ -17,6 +17,7 @@ import { HistoryBar } from '@/components/HistoryBar';
 import { CookiesBar } from '@/components/CookiesBar';
 import { WebSocketBar } from '@/components/WebSocketBar';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { DialogHost } from '@/components/dialogs';
 
 export default function AppPage() {
   const router = useRouter();
@@ -151,6 +152,7 @@ export default function AppPage() {
           <ResponseViewer />
         </main>
       </div>
+      <DialogHost />
     </div>
   );
 }

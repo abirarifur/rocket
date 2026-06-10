@@ -16,9 +16,10 @@ test('register, create collection, send a request, see the response', async ({ p
   await expect(page).toHaveURL(/\/app$/);
   await expect(page.getByText('COLLECTIONS', { exact: true })).toBeVisible();
 
-  // Create a collection (the name comes from a window.prompt).
-  page.once('dialog', (d) => d.accept('E2E Collection'));
+  // Create a collection (the name comes from an in-app modal).
   await page.getByTitle('New collection').click();
+  await page.getByLabel('Collection name').fill('E2E Collection');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
   await expect(page.getByText('E2E Collection')).toBeVisible();
 
   // Add a request to it, then select it.

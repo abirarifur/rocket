@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '@/store/appStore';
 import { Modal } from './Modal';
+import { confirmDialog } from './dialogs';
 import * as teams from '@/lib/teams-api';
 import { Users } from 'lucide-react';
 import { canAdmin, type Member, type Role } from '@/lib/teams-api';
@@ -120,7 +121,7 @@ function MembersModal({
                   <button
                     title="Transfer ownership"
                     onClick={async () => {
-                      if (window.confirm(`Make ${m.email} the owner? You will become an Admin.`)) {
+                      if (await confirmDialog({ title: 'Transfer ownership', message: `Make ${m.email} the owner? You will become an Admin.`, confirmLabel: 'Transfer' })) {
                         await teams.transferOwnership(teamId, m.userId);
                         void reload();
                       }
@@ -134,7 +135,7 @@ function MembersModal({
                   <button
                     title="Remove"
                     onClick={async () => {
-                      if (window.confirm(`Remove ${m.email}?`)) {
+                      if (await confirmDialog({ title: 'Remove member', message: `Remove ${m.email} from the team?`, confirmLabel: 'Remove', danger: true })) {
                         await teams.removeMember(teamId, m.userId);
                         void reload();
                       }

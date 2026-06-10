@@ -1,7 +1,9 @@
 'use client';
 
+import { Plus } from 'lucide-react';
 import { useApp } from '@/store/appStore';
 import { canAdmin } from '@/lib/teams-api';
+import { promptDialog } from './dialogs';
 
 const ctrl: React.CSSProperties = {
   background: 'var(--bg)',
@@ -52,14 +54,15 @@ export function WorkspaceBar() {
       )}
       {canAdmin(role) && (
         <button
-          onClick={() => {
-            const name = window.prompt('New team workspace name', 'Team Workspace');
+          onClick={async () => {
+            const name = await promptDialog({ title: 'New team workspace', label: 'Workspace name', defaultValue: 'Team Workspace', placeholder: 'Team Workspace' });
             if (name) void createTeamWorkspace(name);
           }}
           style={{ ...ctrl, cursor: 'pointer', color: 'var(--accent)' }}
+          className="inline-flex items-center"
           title="New team workspace"
         >
-          +
+          <Plus size={15} />
         </button>
       )}
     </div>

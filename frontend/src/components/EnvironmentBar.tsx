@@ -6,6 +6,7 @@ import type { Variable } from '@rocket/types';
 import { useApp } from '@/store/appStore';
 import { Modal } from './Modal';
 import { VariablesEditor } from './VariablesEditor';
+import { promptDialog, confirmDialog } from './dialogs';
 
 const ctrl: React.CSSProperties = {
   background: 'var(--bg)',
@@ -77,8 +78,8 @@ function ManageModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
           <button
-            onClick={() => {
-              const name = window.prompt('Environment name', 'Production');
+            onClick={async () => {
+              const name = await promptDialog({ title: 'New environment', label: 'Environment name', defaultValue: 'Production', placeholder: 'Production' });
               if (name) void createEnvironment(name);
             }}
             style={{ marginTop: '0.5rem', background: 'none', border: '1px dashed var(--border)', borderRadius: 6, color: 'var(--accent)', cursor: 'pointer', padding: '0.35rem 0.5rem', width: '100%', fontSize: '0.8rem' }}
@@ -106,8 +107,8 @@ function ManageModal({ onClose }: { onClose: () => void }) {
                 </button>
                 {saved && <span style={{ color: 'var(--ok)', fontSize: '0.82rem' }}>Saved ✓</span>}
                 <button
-                  onClick={() => {
-                    if (window.confirm(`Delete environment "${selected.name}"?`)) {
+                  onClick={async () => {
+                    if (await confirmDialog({ title: 'Delete environment', message: `Delete environment "${selected.name}"?`, confirmLabel: 'Delete', danger: true })) {
                       void deleteEnvironment(selected.id);
                       setSelectedId(null);
                     }

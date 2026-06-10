@@ -13,6 +13,7 @@ import { ImportModal } from './ImportModal';
 import { OpsModal } from './OpsModal';
 import { CommentsModal } from './CommentsModal';
 import { ContextMenu, type MenuItem } from './ContextMenu';
+import { promptDialog, confirmDialog } from './dialogs';
 import { exportCollection } from '@/lib/interop-api';
 
 async function downloadExport(collectionId: string, name: string) {
@@ -64,13 +65,13 @@ function TreeNodes({
   const editable = canEdit(role);
 
   const requestItems = (node: Extract<CollectionNode, { type: 'request' }>): MenuItem[] => [
-    { label: 'Rename', shortcut: 'Ctrl+E', onClick: () => { const n = window.prompt('Rename request', node.request.name); if (n) void rename(collectionId, node.id, n); } },
+    { label: 'Rename', shortcut: 'Ctrl+E', onClick: async () => { const n = await promptDialog({ title: 'Rename request', label: 'Name', defaultValue: node.request.name, confirmLabel: 'Rename' }); if (n) void rename(collectionId, node.id, n); } },
     { divider: true },
     { label: 'Delete', danger: true, shortcut: 'Del', onClick: () => void deleteNode(collectionId, node.id) },
   ];
   const folderItems = (node: Extract<CollectionNode, { type: 'folder' }>): MenuItem[] => [
     { label: 'Add request', onClick: () => void addRequest(collectionId, node.id) },
-    { label: 'Rename', onClick: () => { const n = window.prompt('Rename folder', node.name); if (n) void rename(collectionId, node.id, n); } },
+    { label: 'Rename', onClick: async () => { const n = await promptDialog({ title: 'Rename folder', label: 'Name', defaultValue: node.name, confirmLabel: 'Rename' }); if (n) void rename(collectionId, node.id, n); } },
     { divider: true },
     { label: 'Delete', danger: true, onClick: () => void deleteNode(collectionId, node.id) },
   ];
@@ -239,9 +240,9 @@ export function Sidebar() {
       items.push(
         { label: 'Variables', onClick: async () => { await useApp.getState().loadCollection(c.id); setVarsFor(c.id); } },
         { label: 'Mock / Monitor / Docs', onClick: () => setOpsFor({ id: c.id, name: c.name }) },
-        { label: 'Fork', shortcut: 'Ctrl+Alt+F', onClick: () => { const n = window.prompt('Fork name', `${c.name} (fork)`); if (n) void forkCollection(c.id, n); } },
+        { label: 'Fork', shortcut: 'Ctrl+Alt+F', onClick: async () => { const n = await promptDialog({ title: 'Fork collection', label: 'Fork name', defaultValue: `${c.name} (fork)`, confirmLabel: 'Fork' }); if (n) void forkCollection(c.id, n); } },
         { divider: true },
-        { label: 'Delete', danger: true, onClick: () => { if (window.confirm(`Delete collection "${c.name}"?`)) void deleteCollection(c.id); } },
+        { label: 'Delete', danger: true, onClick: async () => { if (await confirmDialog({ title: 'Delete collection', message: `Delete collection "${c.name}"? This cannot be undone.`, confirmLabel: 'Delete', danger: true })) void deleteCollection(c.id); } },
       );
     }
     return items;
@@ -279,8 +280,8 @@ export function Sidebar() {
               <Download size={16} />
             </button>
             <button
-              onClick={() => {
-                const name = window.prompt('New collection name', 'My Collection');
+              onClick={async () => {
+                const name = await promptDialog({ title: 'New collection', label: 'Collection name', defaultValue: 'My Collection', placeholder: 'My Collection' });
                 if (name) void createCollection(name);
               }}
               style={{ ...miniBtn, color: 'var(--accent)' }}
