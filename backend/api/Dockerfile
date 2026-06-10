@@ -15,4 +15,8 @@ ENV NODE_ENV=production
 COPY --from=build /app /app
 RUN chmod +x /app/api/docker-entrypoint.sh
 EXPOSE 4000
+# Runs as root because the entrypoint applies DB migrations on boot; in k8s
+# prefer an init-container for migrations and drop privileges for the server.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s \
+  CMD wget -qO- http://127.0.0.1:4000/health || exit 1
 CMD ["/app/api/docker-entrypoint.sh"]

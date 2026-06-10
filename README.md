@@ -89,6 +89,19 @@ pnpm stack:up      # build + run the whole project in Docker
   encryption at rest, Postman import/export, and public mock serving over HTTP (via SWC transform
   so NestJS DI metadata is emitted under Vitest).
 
+## Production readiness (Phase 10, in progress)
+
+- **Security headers** via Helmet on the API.
+- **Probes:** `GET /health` (liveness) and `GET /ready` (readiness — checks Postgres + Redis,
+  returns 503 if any dependency is down).
+- **Graceful shutdown:** `enableShutdownHooks` + a Redis lifecycle hook so SIGTERM closes DB/Redis/
+  queue connections and the process exits cleanly (k8s-friendly).
+- **Request tracing:** an `x-request-id` is assigned/propagated and logged with each request.
+- **CI:** `.github/workflows/ci.yml` runs typecheck + build + unit + integration (with
+  Postgres/Redis/MinIO services) and the frontend build on every push/PR.
+- **Container hardening:** non-root `USER` on the proxy/runner/web images and `HEALTHCHECK` on all
+  services (the API runs migrations on boot, so it stays root — use an init-container in k8s).
+
 ## Status
 
 - **Phase 0 — Foundation & Scaffolding** ✓ monorepo, services, Docker, SSRF-safe proxy

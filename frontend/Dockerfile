@@ -16,5 +16,10 @@ RUN pnpm build
 FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=build /app /app
+# next start may write to .next/cache, so the runtime user needs to own it.
+RUN chown -R node:node /app/.next
+USER node
 EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s \
+  CMD wget -qO- http://127.0.0.1:3001/ || exit 1
 CMD ["pnpm", "start"]
