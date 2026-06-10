@@ -1,7 +1,9 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
+/** App modal built on the shadcn Dialog (focus trap, Escape, overlay, animation). */
 export function Modal({
   title,
   onClose,
@@ -14,41 +16,16 @@ export function Modal({
   width?: number;
 }) {
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'grid',
-        placeItems: 'center',
-        zIndex: 50,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width,
-          maxWidth: '92vw',
-          maxHeight: '85vh',
-          overflow: 'auto',
-          background: 'var(--panel)',
-          border: '1px solid var(--border)',
-          borderRadius: 12,
-          padding: '1.25rem 1.5rem',
-        }}
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        className="max-h-[85vh] w-[92vw] overflow-y-auto"
+        style={{ maxWidth: width }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.05rem' }}>{title}</h2>
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '1.1rem' }}
-          >
-            ✕
-          </button>
-        </div>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

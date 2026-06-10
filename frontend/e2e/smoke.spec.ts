@@ -7,9 +7,9 @@ test('register, create collection, send a request, see the response', async ({ p
 
   // Register.
   await page.goto('/register');
-  await page.getByPlaceholder('Name (optional)').fill('E2E');
-  await page.getByPlaceholder('Email').fill(email);
-  await page.getByPlaceholder('Password (min 8 characters)').fill('supersecret');
+  await page.getByLabel('Name').fill('E2E');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password').fill('supersecret');
   await page.getByRole('button', { name: 'Create account' }).click();
 
   // Lands in the workspace.

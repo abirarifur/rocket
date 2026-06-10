@@ -1,3 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── shadcn design tokens (namespaced --sc-* to coexist with legacy vars) ── */
+@layer base {
+  :root,
+  :root[data-theme='dark'] {
+    --sc-background: 222 22% 7%;
+    --sc-foreground: 220 20% 92%;
+    --sc-card: 220 16% 10%;
+    --sc-card-foreground: 220 20% 92%;
+    --sc-popover: 220 16% 10%;
+    --sc-popover-foreground: 220 20% 92%;
+    --sc-primary: 16 100% 60%;
+    --sc-primary-foreground: 0 0% 100%;
+    --sc-secondary: 220 14% 15%;
+    --sc-secondary-foreground: 220 20% 92%;
+    --sc-muted: 220 14% 15%;
+    --sc-muted-foreground: 218 12% 62%;
+    --sc-accent: 220 14% 17%;
+    --sc-accent-foreground: 220 20% 92%;
+    --sc-destructive: 0 72% 60%;
+    --sc-destructive-foreground: 0 0% 100%;
+    --sc-success: 137 50% 49%;
+    --sc-border: 220 14% 18%;
+    --sc-input: 220 14% 18%;
+    --sc-ring: 16 100% 60%;
+    --radius: 0.5rem;
+  }
+
+  :root[data-theme='light'] {
+    --sc-background: 0 0% 100%;
+    --sc-foreground: 222 30% 13%;
+    --sc-card: 0 0% 100%;
+    --sc-card-foreground: 222 30% 13%;
+    --sc-popover: 0 0% 100%;
+    --sc-popover-foreground: 222 30% 13%;
+    --sc-primary: 16 90% 53%;
+    --sc-primary-foreground: 0 0% 100%;
+    --sc-secondary: 220 16% 95%;
+    --sc-secondary-foreground: 222 30% 13%;
+    --sc-muted: 220 16% 95%;
+    --sc-muted-foreground: 220 10% 40%;
+    --sc-accent: 220 16% 93%;
+    --sc-accent-foreground: 222 30% 13%;
+    --sc-destructive: 0 72% 50%;
+    --sc-destructive-foreground: 0 0% 100%;
+    --sc-success: 137 60% 30%;
+    --sc-border: 220 14% 86%;
+    --sc-input: 220 14% 86%;
+    --sc-ring: 16 90% 53%;
+  }
+}
+
+/* ── legacy palette (used by existing inline-styled components) ── */
 :root,
 :root[data-theme='dark'] {
   --bg: #0f1117;
@@ -25,24 +81,6 @@
   box-sizing: border-box;
 }
 
-/* Smooth theme transitions on the big surfaces. */
-html,
-body,
-aside,
-header {
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-/* Basic responsiveness: stack the workspace on narrow screens. */
-@media (max-width: 720px) {
-  aside {
-    width: 220px !important;
-  }
-}
-
 html,
 body {
   margin: 0;
@@ -57,7 +95,24 @@ a {
   color: var(--accent);
 }
 
-/* Sidebar rows: subtle hover + reveal the action buttons on hover (Postman-style). */
+/* Smooth theme transitions on the big surfaces. */
+html,
+body,
+aside,
+header {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+@media (max-width: 720px) {
+  aside {
+    width: 220px !important;
+  }
+}
+
+/* Sidebar rows: subtle hover + reveal the action buttons on hover. */
 .tree-row:hover {
   background: rgba(127, 127, 127, 0.1) !important;
 }

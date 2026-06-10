@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export type MenuItem =
   | { divider: true }
@@ -21,7 +22,6 @@ export function ContextMenu({
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
 
-  // Keep the menu inside the viewport.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -38,25 +38,16 @@ export function ContextMenu({
   }, [onClose]);
 
   return (
-    <div onClick={onClose} onContextMenu={(e) => (e.preventDefault(), onClose())} style={{ position: 'fixed', inset: 0, zIndex: 100 }}>
+    <div onClick={onClose} onContextMenu={(e) => (e.preventDefault(), onClose())} className="fixed inset-0 z-[100]">
       <div
         ref={ref}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          position: 'fixed',
-          left: pos.left,
-          top: pos.top,
-          minWidth: 200,
-          background: 'var(--panel)',
-          border: '1px solid var(--border)',
-          borderRadius: 8,
-          padding: '0.3rem',
-          boxShadow: '0 8px 28px rgba(0,0,0,0.4)',
-        }}
+        style={{ left: pos.left, top: pos.top }}
+        className="fixed min-w-[12rem] animate-in fade-in-0 zoom-in-95 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg"
       >
         {items.map((item, i) =>
           'divider' in item ? (
-            <div key={i} style={{ height: 1, background: 'var(--border)', margin: '0.3rem 0.2rem' }} />
+            <div key={i} className="my-1 h-px bg-border" />
           ) : (
             <button
               key={i}
@@ -66,28 +57,15 @@ export function ContextMenu({
                 item.onClick();
                 onClose();
               }}
-              style={{
-                display: 'flex',
-                width: '100%',
-                alignItems: 'center',
-                gap: '0.75rem',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: 5,
-                color: item.disabled ? 'var(--muted)' : item.danger ? 'var(--bad)' : 'var(--text)',
-                cursor: item.disabled ? 'default' : 'pointer',
-                padding: '0.42rem 0.6rem',
-                fontSize: '0.85rem',
-                textAlign: 'left',
-                opacity: item.disabled ? 0.5 : 1,
-              }}
-              onMouseEnter={(e) => !item.disabled && (e.currentTarget.style.background = 'var(--bg)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.shortcut && (
-                <span style={{ color: 'var(--muted)', fontSize: '0.72rem' }}>{item.shortcut}</span>
+              className={cn(
+                'flex w-full items-center gap-3 rounded-sm px-2.5 py-1.5 text-left text-sm outline-none transition-colors',
+                'hover:bg-accent hover:text-accent-foreground focus:bg-accent',
+                item.danger && 'text-destructive hover:text-destructive',
+                item.disabled && 'pointer-events-none opacity-50',
               )}
+            >
+              <span className="flex-1">{item.label}</span>
+              {item.shortcut && <span className="text-xs text-muted-foreground">{item.shortcut}</span>}
             </button>
           ),
         )}
