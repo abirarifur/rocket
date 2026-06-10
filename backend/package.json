@@ -12,6 +12,7 @@
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:int": "pnpm --filter @rocket/api test:int",
     "clean": "turbo run clean && rm -rf node_modules",
     "prisma:generate": "pnpm --filter @rocket/api prisma:generate",
     "prisma:migrate": "pnpm --filter @rocket/api prisma:migrate",

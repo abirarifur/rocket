@@ -73,11 +73,21 @@ pnpm dev:frontend  # run the Next.js app
 pnpm dev:backend   # run api + proxy
 pnpm build         # build backend then frontend
 pnpm sync:types    # copy backend/shared/src -> frontend/types
-pnpm -C backend test   # run backend tests (incl. proxy SSRF suite)
+pnpm -C backend test       # unit tests (no infra): resolve/interpolate/assemble, SSRF, sandbox, interop, oauth
+pnpm infra:up && pnpm -C backend test:int   # integration tests: boots the API against Postgres/Redis/MinIO
 pnpm infra:up      # start docker backing services
 pnpm infra:down    # stop docker backing services
 pnpm stack:up      # build + run the whole project in Docker
 ```
+
+## Testing
+
+- **Unit** (`pnpm -C backend test`, no infra): request resolution/interpolation/body-assembly,
+  proxy SSRF guard, script sandbox isolation, Postman/cURL interop, OAuth provider config.
+- **Integration** (`pnpm -C backend test:int`, needs `pnpm infra:up`): boots the real NestJS app
+  against Postgres/Redis/MinIO and exercises auth, RBAC enforcement, collection CRUD, secret
+  encryption at rest, Postman import/export, and public mock serving over HTTP (via SWC transform
+  so NestJS DI metadata is emitted under Vitest).
 
 ## Status
 
