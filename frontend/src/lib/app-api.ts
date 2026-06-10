@@ -54,6 +54,7 @@ export interface ProxyResponseDto {
   statusText: string;
   headers: Record<string, string>;
   body: string;
+  setCookies?: string[];
   truncated: boolean;
   timeMs: number;
   sizeBytes: number;

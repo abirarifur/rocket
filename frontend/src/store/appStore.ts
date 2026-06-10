@@ -19,6 +19,7 @@ import {
 } from '@/lib/tree';
 import * as interopApi from '@/lib/interop-api';
 import { getSocket, type PresenceEntry } from '@/lib/socket';
+import * as cookieJar from '@/lib/cookie-jar';
 
 type Tree = CollectionNode[];
 
@@ -62,6 +63,7 @@ interface AppState {
   setCollectionVariables: (collectionId: string, variables: Variable[]) => Promise<void>;
   toggleCollection: (id: string) => Promise<void>;
   selectRequest: (collectionId: string, nodeId: string) => void;
+  loadDraft: (request: RequestDefinition) => void;
   updateDraft: (patch: Partial<RequestDefinition>) => void;
   saveActive: () => Promise<void>;
   send: () => Promise<void>;
@@ -231,6 +233,19 @@ export const useApp = create<AppState>((set, get) => ({
     if (ws) getSocket().emit('view', { workspaceId: ws, collectionId });
   },
 
+  /** Load a request into the builder as an ephemeral draft (e.g. from history). */
+  loadDraft(request) {
+    set({
+      activeCollectionId: null,
+      activeNodeId: null,
+      draft: structuredClone(request),
+      response: null,
+      sendError: null,
+      testResults: [],
+      scriptLogs: [],
+    });
+  },
+
   updateDraft(patch) {
     const draft = get().draft;
     if (!draft) return;
@@ -256,7 +271,14 @@ export const useApp = create<AppState>((set, get) => ({
     set({ sending: true, sendError: null, response: null, testResults: [], scriptLogs: [], scriptError: null });
     try {
       await get().saveActive();
-      const result = await api.sendRequest(workspaceId, draft, {
+      // Attach matching cookies from the jar (without persisting them to the request).
+      const cookieHeader = cookieJar.cookieHeaderFor(workspaceId, draft.url);
+      const hasCookie = draft.headers.some((h) => h.enabled && h.key.toLowerCase() === 'cookie');
+      const toSend =
+        cookieHeader && !hasCookie
+          ? { ...draft, headers: [...draft.headers, { key: 'Cookie', value: cookieHeader, enabled: true }] }
+          : draft;
+      const result = await api.sendRequest(workspaceId, toSend, {
         environmentId: activeEnvironmentId,
         collectionId: activeCollectionId,
       });
@@ -266,6 +288,9 @@ export const useApp = create<AppState>((set, get) => ({
         scriptError: result.scriptError ?? null,
       });
       if (result.ok && result.response) {
+        if (result.response.setCookies?.length) {
+          cookieJar.storeFromResponse(workspaceId, draft.url, result.response.setCookies);
+        }
         set({ response: result.response });
         // A test script may have written to the active environment — refresh it.
         if (activeEnvironmentId && result.tests && result.tests.length >= 0) {

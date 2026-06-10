@@ -66,6 +66,27 @@ export function addNode(
   });
 }
 
+/** Filter the tree to requests matching a query (by name/method/url); keeps
+ *  folders that contain a match. Empty query returns the tree unchanged. */
+export function filterTree(tree: CollectionNode[], query: string): CollectionNode[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return tree;
+  const walk = (nodes: CollectionNode[]): CollectionNode[] => {
+    const out: CollectionNode[] = [];
+    for (const n of nodes) {
+      if (n.type === 'request') {
+        const r = n.request;
+        if (`${r.name} ${r.method} ${r.url}`.toLowerCase().includes(q)) out.push(n);
+      } else {
+        const children = walk(n.children);
+        if (children.length || n.name.toLowerCase().includes(q)) out.push({ ...n, children });
+      }
+    }
+    return out;
+  };
+  return walk(tree);
+}
+
 /** Remove a node anywhere in the tree, returning it and the pruned tree. */
 export function extractNode(
   tree: CollectionNode[],

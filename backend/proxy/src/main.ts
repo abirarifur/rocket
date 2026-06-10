@@ -81,12 +81,15 @@ app.post('/proxy', async (req, reply) => {
     res.headers.forEach((value, key) => {
       headers[key] = value;
     });
+    const setCookies =
+      typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : [];
 
     const out: ProxyResponse = {
       status: res.status,
       statusText: res.statusText,
       headers,
       body: bodyText,
+      setCookies,
       truncated,
       timeMs,
       sizeBytes: total,

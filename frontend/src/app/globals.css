@@ -1,4 +1,5 @@
-:root {
+:root,
+:root[data-theme='dark'] {
   --bg: #0f1117;
   --panel: #171a21;
   --border: #262b36;
@@ -9,8 +10,37 @@
   --bad: #f85149;
 }
 
+:root[data-theme='light'] {
+  --bg: #ffffff;
+  --panel: #f6f7f9;
+  --border: #d8dde6;
+  --text: #1b1f27;
+  --muted: #5a6473;
+  --accent: #e85a26;
+  --ok: #1a7f37;
+  --bad: #cf222e;
+}
+
 * {
   box-sizing: border-box;
+}
+
+/* Smooth theme transitions on the big surfaces. */
+html,
+body,
+aside,
+header {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* Basic responsiveness: stack the workspace on narrow screens. */
+@media (max-width: 720px) {
+  aside {
+    width: 220px !important;
+  }
 }
 
 html,

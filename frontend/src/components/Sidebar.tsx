@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CollectionNode, Variable } from '@rocket/types';
 import { useApp } from '@/store/appStore';
 import { canEdit } from '@/lib/teams-api';
+import { filterTree } from '@/lib/tree';
 import { Modal } from './Modal';
 import { VariablesEditor } from './VariablesEditor';
 import { RunModal } from './RunModal';
@@ -182,6 +183,23 @@ export function Sidebar() {
     forkCollection,
   } = useApp();
   const editable = canEdit(role);
+  const [query, setQuery] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl/Cmd+K focuses search (dispatched from the app shell).
+  useEffect(() => {
+    const onFocus = () => searchRef.current?.focus();
+    window.addEventListener('rocket:focus-search', onFocus);
+    return () => window.removeEventListener('rocket:focus-search', onFocus);
+  }, []);
+
+  // When searching, load all collections so their trees can be matched.
+  useEffect(() => {
+    if (!query.trim()) return;
+    for (const c of collections) if (!cache[c.id]) void useApp.getState().loadCollection(c.id);
+  }, [query, collections, cache]);
+
+  const searching = query.trim() !== '';
   const [varsFor, setVarsFor] = useState<string | null>(null);
   const [runFor, setRunFor] = useState<{ id: string; name: string } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -233,13 +251,37 @@ export function Sidebar() {
         )}
       </div>
 
+      <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--border)' }}>
+        <input
+          ref={searchRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search requests…  (Ctrl/⌘K)"
+          style={{
+            width: '100%',
+            background: 'var(--bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            color: 'var(--text)',
+            padding: '0.4rem 0.55rem',
+            fontSize: '0.82rem',
+          }}
+        />
+      </div>
+
       {collections.length === 0 && (
         <p style={{ color: 'var(--muted)', fontSize: '0.82rem', padding: '1rem' }}>
           No collections yet. Click + to create one.
         </p>
       )}
 
-      {collections.map((c) => (
+      {collections
+        .filter((c) => {
+          if (!searching) return true;
+          const tree = (cache[c.id]?.tree as CollectionNode[]) ?? [];
+          return c.name.toLowerCase().includes(query.toLowerCase()) || filterTree(tree, query).length > 0;
+        })
+        .map((c) => (
         <div key={c.id} style={{ padding: '0.25rem 0.5rem' }}>
           <div
             style={{
@@ -251,7 +293,7 @@ export function Sidebar() {
             }}
             onClick={() => void toggleCollection(c.id)}
           >
-            <span style={{ color: 'var(--muted)' }}>{expanded[c.id] ? '▾' : '▸'}</span>
+            <span style={{ color: 'var(--muted)' }}>{searching || expanded[c.id] ? '▾' : '▸'}</span>
             <strong style={{ flex: 1, fontSize: '0.88rem' }}>{c.name}</strong>
             <button
               title="Run collection"
@@ -332,8 +374,15 @@ export function Sidebar() {
               </>
             )}
           </div>
-          {expanded[c.id] && cache[c.id] && (
-            <TreeNodes nodes={cache[c.id]!.tree as CollectionNode[]} collectionId={c.id} />
+          {(searching || expanded[c.id]) && cache[c.id] && (
+            <TreeNodes
+              nodes={
+                searching
+                  ? filterTree(cache[c.id]!.tree as CollectionNode[], query)
+                  : (cache[c.id]!.tree as CollectionNode[])
+              }
+              collectionId={c.id}
+            />
           )}
         </div>
       ))}

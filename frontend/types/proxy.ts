@@ -26,6 +26,8 @@ export const ProxyResponseSchema = z.object({
   headers: z.record(z.string(), z.string()),
   /** Response body as text; large bodies are truncated and flagged. */
   body: z.string(),
+  /** Raw Set-Cookie header values (for the client cookie jar). */
+  setCookies: z.array(z.string()).default([]),
   truncated: z.boolean().default(false),
   /** Total round-trip time in milliseconds, measured server-side. */
   timeMs: z.number(),

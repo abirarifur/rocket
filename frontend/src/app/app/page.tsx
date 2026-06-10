@@ -12,6 +12,9 @@ import { WorkspaceBar } from '@/components/WorkspaceBar';
 import { MembersBar } from '@/components/MembersBar';
 import { GlobalsBar } from '@/components/GlobalsBar';
 import { PresenceBar } from '@/components/PresenceBar';
+import { HistoryBar } from '@/components/HistoryBar';
+import { CookiesBar } from '@/components/CookiesBar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function AppPage() {
   const router = useRouter();
@@ -32,6 +35,26 @@ export default function AppPage() {
       setReady(true);
     });
   }, [init, router, setMe, connectRealtime]);
+
+  // Global keyboard shortcuts: send, save, focus search.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        void useApp.getState().send();
+      } else if (e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        void useApp.getState().saveActive();
+      } else if (e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        window.dispatchEvent(new Event('rocket:focus-search'));
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   if (!ready) {
     return <div style={{ padding: '4rem', color: 'var(--muted)' }}>Loading workspace…</div>;
@@ -56,7 +79,10 @@ export default function AppPage() {
           <PresenceBar />
           <EnvironmentBar />
           <GlobalsBar />
+          <HistoryBar />
+          <CookiesBar />
           <MembersBar />
+          <ThemeToggle />
           <span style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>{email}</span>
           <button
             onClick={async () => {
