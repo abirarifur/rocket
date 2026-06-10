@@ -17,6 +17,7 @@ const resp = {
   statusText: 'OK',
   headers: { 'content-type': 'application/json' },
   body: '{"id":42,"name":"rocket"}',
+  setCookies: [],
   truncated: false,
   timeMs: 12,
   sizeBytes: 24,

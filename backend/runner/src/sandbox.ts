@@ -151,7 +151,7 @@ async function doSend(reqArg: unknown, proxyBase: string): Promise<unknown> {
   if (!res.ok || 'code' in data) {
     throw new Error('sendRequest failed: ' + ('error' in data ? data.error : res.status));
   }
-  return makePmResponse({ ...data, truncated: false, sizeBytes: data.body.length });
+  return makePmResponse({ ...data, setCookies: [], truncated: false, sizeBytes: data.body.length });
 }
 
 function safeStringify(v: unknown): string {
