@@ -167,6 +167,9 @@ describe('Rocket API (integration)', () => {
     const teamId = me.teams[0]!.id;
     const billing = await a.get(`/api/teams/${teamId}/billing`).expect(200);
     expect((billing.body as { plan: string }).plan).toBe('FREE');
-    expect((billing.body as { limits: { collections: number } }).limits.collections).toBe(10);
+    expect((billing.body as { limits: { collections: number; members: number } }).limits).toMatchObject({
+      collections: 30,
+      members: 5,
+    });
   });
 });

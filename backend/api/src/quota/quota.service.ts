@@ -4,10 +4,16 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export type QuotaResource = 'collections' | 'environments' | 'monitors' | 'mocks' | 'members';
 
-/** Per-plan resource limits (per team). Infinity = unlimited. */
+/**
+ * Per-plan resource limits (per team). Infinity = unlimited.
+ *
+ * This version of the product is free; new teams default to FREE, so the FREE
+ * row defines the limits everyone gets: 5 members, 30 collections, etc. (The
+ * PRO/ENTERPRISE rows are retained for when monetization is wanted.)
+ */
 export const PLAN_LIMITS: Record<Plan, Record<QuotaResource, number>> = {
-  FREE: { collections: 10, environments: 5, monitors: 2, mocks: 2, members: 3 },
-  PRO: { collections: 100, environments: 50, monitors: 25, mocks: 25, members: 25 },
+  FREE: { collections: 30, environments: 15, monitors: 10, mocks: 10, members: 5 },
+  PRO: { collections: 200, environments: 100, monitors: 50, mocks: 50, members: 25 },
   ENTERPRISE: {
     collections: Infinity,
     environments: Infinity,
