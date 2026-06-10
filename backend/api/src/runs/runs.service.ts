@@ -30,26 +30,45 @@ export class RunsService {
     private readonly execution: ExecutionService,
   ) {}
 
-  /** Create a run record and enqueue the background job. */
+  /** Create a run record and enqueue the background job (user-initiated). */
   async enqueue(userId: string, collectionId: string, dto: RunCollectionDto) {
     const { collection } = await this.tenancy.assertCollectionAccess(userId, collectionId);
     const rows = parseDataRows(dto.data);
     const iterations = rows.length > 0 ? rows.length : dto.iterations;
+    return this.runCollection({
+      collectionId,
+      workspaceId: collection.workspaceId,
+      userId,
+      environmentId: dto.environmentId ?? null,
+      iterations,
+      data: dto.data ?? null,
+    });
+  }
 
+  /** Internal: create the run record + enqueue the job (also used by monitors). */
+  async runCollection(opts: {
+    collectionId: string;
+    workspaceId: string;
+    userId: string;
+    environmentId?: string | null;
+    iterations: number;
+    data?: { type: 'json' | 'csv'; content: string } | null;
+    monitorId?: string | null;
+  }) {
     const run = await this.prisma.collectionRun.create({
       data: {
-        collectionId,
-        workspaceId: collection.workspaceId,
-        userId,
-        environmentId: dto.environmentId ?? null,
+        collectionId: opts.collectionId,
+        workspaceId: opts.workspaceId,
+        userId: opts.userId,
+        environmentId: opts.environmentId ?? null,
+        monitorId: opts.monitorId ?? null,
         status: RunStatus.QUEUED,
-        iterations,
+        iterations: opts.iterations,
       },
     });
-
     await this.queue.add(
       'run',
-      { runId: run.id, data: dto.data ?? null },
+      { runId: run.id, data: opts.data ?? null },
       { removeOnComplete: 100, removeOnFail: 100 },
     );
     return run;
@@ -151,6 +170,11 @@ export class RunsService {
           report: report as unknown as Prisma.InputJsonValue,
         },
       });
+
+      // Monitor alerting hook: notify a webhook when a scheduled run has failures.
+      if (run.monitorId && failed > 0) {
+        await this.fireMonitorWebhook(run.monitorId, runId, passed, failed);
+      }
     } catch (e) {
       this.logger.error(`run ${runId} failed: ${e instanceof Error ? e.message : e}`);
       await this.prisma.collectionRun.update({
@@ -161,6 +185,26 @@ export class RunsService {
           error: e instanceof Error ? e.message : String(e),
         },
       });
+    }
+  }
+
+  private async fireMonitorWebhook(monitorId: string, runId: string, passed: number, failed: number) {
+    const monitor = await this.prisma.monitor.findUnique({ where: { id: monitorId } });
+    if (!monitor?.webhookUrl) return;
+    try {
+      await fetch(monitor.webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          monitor: monitor.name,
+          runId,
+          passed,
+          failed,
+          status: 'failures detected',
+        }),
+      });
+    } catch (e) {
+      this.logger.warn(`monitor webhook failed: ${e instanceof Error ? e.message : e}`);
     }
   }
 

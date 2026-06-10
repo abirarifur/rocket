@@ -175,12 +175,42 @@ enum RunStatus {
   FAILED
 }
 
+model MockServer {
+  id           String   @id @default(cuid())
+  collectionId String
+  workspaceId  String
+  name         String
+  enabled      Boolean  @default(true)
+  // [{ method, path, status, contentType, body, headers? }]
+  routes       Json     @default("[]")
+  createdAt    DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+model Monitor {
+  id              String    @id @default(cuid())
+  collectionId    String
+  workspaceId     String
+  userId          String
+  environmentId   String?
+  name            String
+  intervalMinutes Int       @default(60)
+  enabled         Boolean   @default(true)
+  webhookUrl      String?
+  lastRunAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([workspaceId])
+}
+
 model CollectionRun {
   id            String    @id @default(cuid())
   collectionId  String
   workspaceId   String
   userId        String
   environmentId String?
+  monitorId     String?
   status        RunStatus @default(QUEUED)
   iterations    Int       @default(1)
   totalRequests Int       @default(0)
@@ -195,4 +225,5 @@ model CollectionRun {
 
   @@index([collectionId])
   @@index([workspaceId])
+  @@index([monitorId])
 }

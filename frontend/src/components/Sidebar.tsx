@@ -8,6 +8,7 @@ import { Modal } from './Modal';
 import { VariablesEditor } from './VariablesEditor';
 import { RunModal } from './RunModal';
 import { ImportModal } from './ImportModal';
+import { OpsModal } from './OpsModal';
 import { exportCollection } from '@/lib/interop-api';
 
 async function downloadExport(collectionId: string, name: string) {
@@ -158,6 +159,7 @@ export function Sidebar() {
   const [varsFor, setVarsFor] = useState<string | null>(null);
   const [runFor, setRunFor] = useState<{ id: string; name: string } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [opsFor, setOpsFor] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <aside
@@ -277,6 +279,13 @@ export function Sidebar() {
                   ⑂
                 </button>
                 <button
+                  title="Mock / Monitor / Docs"
+                  onClick={(e) => (e.stopPropagation(), setOpsFor({ id: c.id, name: c.name }))}
+                  style={miniBtn}
+                >
+                  🚀
+                </button>
+                <button
                   title="Delete collection"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -306,6 +315,9 @@ export function Sidebar() {
         />
       )}
       {importOpen && <ImportModal onClose={() => setImportOpen(false)} />}
+      {opsFor && (
+        <OpsModal collectionId={opsFor.id} collectionName={opsFor.name} onClose={() => setOpsFor(null)} />
+      )}
     </aside>
   );
 }

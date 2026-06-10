@@ -9,5 +9,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [AuthModule, BullModule.registerQueue({ name: RUNS_QUEUE })],
   controllers: [RunsController],
   providers: [RunsService, RunsProcessor],
+  exports: [RunsService],
 })
 export class RunsModule {}

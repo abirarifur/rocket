@@ -103,8 +103,21 @@ pnpm stack:up      # build + run the whole project in Docker
 - **Phase 7 — Import / Export & Interop** ✓ round-trip **Postman Collection v2.1**, import
   **OpenAPI 3.x** / **HAR** / **cURL**, and client-side **code generation** (cURL, fetch, axios,
   Python requests, Go)
+- **Phase 8 — Mock Servers, Monitors & Docs** ✓ **mock servers** (routes derived from a
+  collection, hosted at `/api/mock/:id/*`), **monitors** (BullMQ repeatable schedule, run
+  history, webhook-on-failure), and auto-generated **public API docs** at `/docs/:collectionId`
 
-Next: **Phase 8 — Mock Servers, Monitors & Docs**.
+Next: **Phase 9 — Real-time Collaboration** (deferred per the plan).
+
+### Phase 8 endpoints
+
+| Method | Route                                  | Notes                              |
+| ------ | -------------------------------------- | ---------------------------------- |
+| POST   | `/api/mocks`                           | create a mock from a collection    |
+| ANY    | `/api/mock/:id/*`                      | public mock serving (method+path)  |
+| POST   | `/api/monitors`                        | create a scheduled monitor         |
+| GET    | `/api/monitors/:id/runs`               | monitor run history                |
+| GET    | `/api/public/collections/:id/docs`     | public docs (PUBLIC workspace)     |
 
 ### Phase 7 endpoints
 

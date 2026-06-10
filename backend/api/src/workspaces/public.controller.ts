@@ -14,4 +14,11 @@ export class PublicController {
   getWorkspace(@Param('id') id: string) {
     return this.workspaces.getPublic(id);
   }
+
+  @Public()
+  @RateLimit({ limit: 120, windowSec: 60 })
+  @Get('collections/:id/docs')
+  getCollectionDocs(@Param('id') id: string) {
+    return this.workspaces.getPublicCollectionDocs(id);
+  }
 }

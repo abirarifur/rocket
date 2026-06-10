@@ -43,6 +43,28 @@ export class WorkspacesService {
     return { id: workspace.id, name: workspace.name, collections };
   }
 
+  /** Public, read-only documentation view for a collection in a PUBLIC workspace. */
+  async getPublicCollectionDocs(collectionId: string) {
+    const collection = await this.prisma.collection.findUnique({
+      where: { id: collectionId },
+      include: { workspace: true },
+    });
+    if (!collection || collection.workspace.visibility !== WorkspaceVisibility.PUBLIC) {
+      throw new NotFoundException('Public collection not found');
+    }
+    // Mask secret variable values.
+    const variables = (collection.variables as { key: string; value: string; secret?: boolean }[]).map(
+      (v) => (v.secret ? { ...v, value: '••••••' } : v),
+    );
+    return {
+      id: collection.id,
+      name: collection.name,
+      description: collection.description,
+      variables,
+      tree: collection.tree,
+    };
+  }
+
   /** All workspaces across teams the user belongs to. */
   async listForUser(userId: string) {
     const memberships = await this.prisma.teamMembership.findMany({
