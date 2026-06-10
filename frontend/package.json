@@ -12,6 +12,11 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
+    "@codemirror/lang-html": "^6.4.9",
+    "@codemirror/lang-javascript": "^6.2.2",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/lang-xml": "^6.1.0",
+    "@uiw/react-codemirror": "^4.23.7",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

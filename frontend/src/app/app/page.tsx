@@ -14,6 +14,7 @@ import { GlobalsBar } from '@/components/GlobalsBar';
 import { PresenceBar } from '@/components/PresenceBar';
 import { HistoryBar } from '@/components/HistoryBar';
 import { CookiesBar } from '@/components/CookiesBar';
+import { WebSocketBar } from '@/components/WebSocketBar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function AppPage() {
@@ -81,6 +82,7 @@ export default function AppPage() {
           <GlobalsBar />
           <HistoryBar />
           <CookiesBar />
+          <WebSocketBar />
           <MembersBar />
           <ThemeToggle />
           <span style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>{email}</span>

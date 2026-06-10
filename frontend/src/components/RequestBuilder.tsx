@@ -8,6 +8,7 @@ import { uploadFile } from '@/lib/app-api';
 import type { FormField } from '@rocket/types';
 import { KeyValueEditor } from './KeyValueEditor';
 import { CodeModal } from './CodeModal';
+import { CodeEditor } from './CodeEditor';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 const BODY_MODES: BodyMode[] = ['none', 'raw', 'form-data', 'urlencoded', 'binary', 'graphql'];
@@ -170,19 +171,7 @@ function ScriptEditor({
 }) {
   return (
     <div>
-      <textarea
-        style={{
-          ...input,
-          width: '100%',
-          minHeight: 220,
-          fontFamily: 'ui-monospace, monospace',
-          fontSize: '0.82rem',
-        }}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        spellCheck={false}
-      />
+      <CodeEditor value={value} language="javascript" onChange={onChange} minHeight="220px" placeholder={placeholder} />
       <p style={{ color: 'var(--muted)', fontSize: '0.72rem', marginTop: '0.4rem' }}>
         Sandboxed JS · <code>pm.environment</code>, <code>pm.variables</code>, <code>pm.request</code>,{' '}
         <code>pm.response</code>, <code>pm.test</code>, <code>pm.expect</code>,{' '}
@@ -318,10 +307,10 @@ function BodyEditor() {
       {body.mode === 'none' && <p style={{ color: 'var(--muted)' }}>This request has no body.</p>}
 
       {body.mode === 'raw' && (
-        <textarea
-          style={{ ...input, minHeight: 180, fontFamily: 'ui-monospace, monospace' }}
+        <CodeEditor
           value={body.raw ?? ''}
-          onChange={(e) => updateDraft({ body: { ...body, raw: e.target.value } })}
+          language={body.rawLanguage ?? 'text'}
+          onChange={(v) => updateDraft({ body: { ...body, raw: v } })}
           placeholder="Request body"
         />
       )}

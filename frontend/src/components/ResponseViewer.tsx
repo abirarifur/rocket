@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useApp } from '@/store/appStore';
+import { CodeEditor } from './CodeEditor';
 
 function prettyMaybe(body: string, contentType?: string): string {
   if (contentType?.includes('json') || /^[[{]/.test(body.trim())) {
@@ -70,7 +71,14 @@ export function ResponseViewer() {
         </div>
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: '0 1rem 1rem' }}>
-        {tab === 'body' && <pre style={preStyle}>{prettyMaybe(response.body, ct)}</pre>}
+        {tab === 'body' && (
+          <CodeEditor
+            value={prettyMaybe(response.body, ct)}
+            language={ct?.includes('json') ? 'json' : ct?.includes('xml') ? 'xml' : ct?.includes('html') ? 'html' : 'text'}
+            readOnly
+            minHeight="120px"
+          />
+        )}
         {tab === 'headers' && (
           <pre style={preStyle}>
             {Object.entries(response.headers)
