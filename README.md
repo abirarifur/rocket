@@ -89,6 +89,17 @@ pnpm stack:up      # build + run the whole project in Docker
   encryption at rest, Postman import/export, and public mock serving over HTTP (via SWC transform
   so NestJS DI metadata is emitted under Vitest).
 
+## Polish & extras
+
+- **Email:** real SMTP via nodemailer (`SMTP_*`), console fallback in dev.
+- **Script sandbox:** runs in a worker thread (memory-capped, hard-killable) in prod.
+- **Multi-replica realtime:** socket.io Redis adapter so presence/live events fan out across API replicas.
+- **Read replicas:** `DATABASE_REPLICA_URL` routes hot reads to a replica.
+- **SSO:** generic OIDC provider (Okta/Azure AD/Auth0/Keycloak) + Google/GitHub OAuth.
+- **History UI**, **search** (Ctrl/⌘K), **keyboard shortcuts** (send/save), **cookie jar**,
+  **light/dark theme**, **syntax highlighting** (CodeMirror), and a **WebSocket tester**.
+- **E2E:** Playwright smoke test (register → create → send → response) in `frontend/e2e`.
+
 ## Parity gaps closed
 
 Beyond the phased roadmap, these Postman-parity gaps are now implemented:
