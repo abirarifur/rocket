@@ -49,6 +49,7 @@ function GlobalsModal({ teamId, editable, onClose }: { teamId: string; editable:
           <button
             onClick={async () => {
               await teams.setGlobals(teamId, rows as teams.GlobalVar[]);
+              await useApp.getState().refreshGlobals();
               setSaved(true);
             }}
             style={{ ...ctrl, cursor: 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}

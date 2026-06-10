@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { BodyMode, HttpMethod, RawLanguage } from '@rocket/types';
+import type { BodyMode, HttpMethod, RawLanguage, Variable } from '@rocket/types';
 import { Code2, Send } from 'lucide-react';
 import { useApp } from '@/store/appStore';
 import { canEdit } from '@/lib/teams-api';
@@ -10,6 +10,7 @@ import type { FormField } from '@rocket/types';
 import { KeyValueEditor } from './KeyValueEditor';
 import { CodeModal } from './CodeModal';
 import { CodeEditor } from './CodeEditor';
+import { extractTokens, buildVarMap } from '@/lib/vars';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 const BODY_MODES: BodyMode[] = ['none', 'raw', 'form-data', 'urlencoded', 'binary', 'graphql'];
@@ -25,6 +26,40 @@ const input: React.CSSProperties = {
   padding: '0.5rem 0.6rem',
   fontSize: '0.9rem',
 };
+
+/**
+ * Inline feedback under the URL bar: shows which {{variables}} are used and warns
+ * about any that aren't defined in the current scope (globals < collection < environment).
+ */
+function UrlVariableHint({ url }: { url: string }) {
+  const { environments, activeEnvironmentId, activeCollectionId, cache, globals } = useApp();
+  const tokens = extractTokens(url);
+  if (tokens.length === 0) return null;
+
+  const envVars = environments.find((e) => e.id === activeEnvironmentId)?.variables ?? [];
+  const colVars = ((activeCollectionId && cache[activeCollectionId]?.variables) || []) as Variable[];
+  const map = buildVarMap(globals, colVars, envVars);
+  const missing = tokens.filter((t) => !(t in map));
+
+  if (missing.length === 0) {
+    return (
+      <div style={{ padding: '0 1rem 0.6rem', fontSize: '0.76rem', color: 'var(--ok)' }}>
+        ✓ Variables resolved: {tokens.map((t) => `{{${t}}}`).join(', ')}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '0 1rem 0.6rem', fontSize: '0.76rem', color: 'var(--accent)', lineHeight: 1.5 }}>
+      ⚠ Not defined{activeEnvironmentId ? ' in the active environment' : ' (no environment selected)'}:{' '}
+      {missing.map((t) => (
+        <code key={t} style={{ background: 'rgba(255,107,53,0.12)', padding: '0 4px', borderRadius: 4, marginRight: 4 }}>{`{{${t}}}`}</code>
+      ))}
+      — click the <strong>eye</strong> icon next to the environment selector (top-right) to add{' '}
+      {missing.length > 1 ? 'them' : 'it'}.
+    </div>
+  );
+}
 
 export function RequestBuilder() {
   const { draft, updateDraft, send, sending, role } = useApp();
@@ -106,6 +141,8 @@ export function RequestBuilder() {
         </button>
       </div>
       {codeOpen && <CodeModal request={draft} onClose={() => setCodeOpen(false)} />}
+
+      <UrlVariableHint url={draft.url} />
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1.2rem', padding: '0 1rem', borderBottom: '1px solid var(--border)' }}>

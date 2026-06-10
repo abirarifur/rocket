@@ -71,6 +71,8 @@ interface AppState {
   // Environments
   environments: envApi.Environment[];
   activeEnvironmentId: string | null;
+  globals: Variable[]; // team-wide variables (lowest precedence)
+  refreshGlobals: () => Promise<void>;
 
   // Realtime collaboration
   meId: string | null;
@@ -132,6 +134,7 @@ export const useApp = create<AppState>((set, get) => ({
   tabStash: {},
   environments: [],
   activeEnvironmentId: null,
+  globals: [],
   meId: null,
   presence: [],
 
@@ -193,8 +196,27 @@ export const useApp = create<AppState>((set, get) => ({
       activeTabId: null,
       tabStash: {},
       activeEnvironmentId: null,
+      globals: [],
       presence: [],
     });
+    // Load team-wide globals so {{var}} resolution previews are accurate.
+    const teamId = summary?.teamId ?? null;
+    if (teamId) {
+      teamsApi
+        .getGlobals(teamId)
+        .then((g) => set({ globals: g as Variable[] }))
+        .catch(() => undefined);
+    }
+  },
+
+  async refreshGlobals() {
+    const { teamId } = get();
+    if (!teamId) return;
+    try {
+      set({ globals: (await teamsApi.getGlobals(teamId)) as Variable[] });
+    } catch {
+      /* ignore */
+    }
   },
 
   async loadCollection(id) {
