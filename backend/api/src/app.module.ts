@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { TenancyModule } from './tenancy/tenancy.module';
 import { CryptoModule } from './crypto/crypto.module';
 import { ExecutionModule } from './execution/execution.module';
+import { StorageModule } from './storage/storage.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { CollectionsModule } from './collections/collections.module';
 import { EnvironmentsModule } from './environments/environments.module';
@@ -32,6 +33,7 @@ const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
     RedisModule,
     TenancyModule,
     CryptoModule,
+    StorageModule,
     ExecutionModule,
     HealthModule,
     AuthModule,

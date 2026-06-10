@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/auth-api';
 import { AuthShell, buttonStyle, inputStyle } from '@/components/AuthShell';
+import { OAuthButtons } from '@/components/OAuthButtons';
 
 function LoginInner() {
   const router = useRouter();
@@ -52,6 +53,7 @@ function LoginInner() {
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
+      <OAuthButtons />
       <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--muted)' }}>
         No account? <Link href="/register">Create one</Link>
       </p>

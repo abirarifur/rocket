@@ -10,8 +10,10 @@ export const ProxyRequestSchema = z.object({
   method: HttpMethodSchema,
   url: z.string().url(),
   headers: z.record(z.string(), z.string()).default({}),
-  /** Pre-serialized body (string) or null. Binary handled via objectKey later. */
+  /** Pre-serialized body or null. When bodyEncoding is 'base64', this is the
+   *  base64 of raw bytes (used for multipart/form-data and binary uploads). */
   body: z.string().nullable().default(null),
+  bodyEncoding: z.enum(['utf8', 'base64']).default('utf8'),
   timeoutMs: z.number().int().positive().max(120_000).optional(),
   /** Follow 3xx redirects (default true). */
   followRedirects: z.boolean().default(true),

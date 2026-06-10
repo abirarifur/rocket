@@ -9,6 +9,8 @@ import type {
 } from '@rocket/types';
 import { resolveRequest } from '../send/resolve-request';
 import { interpolateRequest } from '../send/interpolate';
+import { assembleBody } from './assemble-body';
+import { StorageService } from '../storage/storage.service';
 
 export interface ExecutionResult {
   ok: boolean;
@@ -33,6 +35,8 @@ export class ExecutionService {
   private readonly proxyBase = process.env.PROXY_BASE_URL ?? 'http://localhost:4100';
   private readonly runnerBase = process.env.RUNNER_BASE_URL ?? 'http://localhost:4200';
 
+  constructor(private readonly storage: StorageService) {}
+
   async executeOne(request: RequestDefinition, vars: Record<string, string>): Promise<ExecutionResult> {
     const working = { ...vars };
     const setEnv: Record<string, string> = {};
@@ -52,6 +56,16 @@ export class ExecutionService {
 
     const interpolated = interpolateRequest(request, working);
     const proxyReq = resolveRequest(interpolated);
+
+    // form-data / binary bodies are assembled from object storage as raw bytes.
+    if (interpolated.body.mode === 'form-data' || interpolated.body.mode === 'binary') {
+      const assembled = await assembleBody(interpolated, this.storage);
+      if (assembled) {
+        proxyReq.body = assembled.bodyBase64;
+        proxyReq.bodyEncoding = 'base64';
+        proxyReq.headers['Content-Type'] = assembled.contentType;
+      }
+    }
 
     let res: Response;
     try {

@@ -33,6 +33,19 @@ model User {
   history       RequestHistory[]
   refreshTokens RefreshToken[]
   authTokens    AuthToken[]
+  oauthIdentities OAuthIdentity[]
+}
+
+model OAuthIdentity {
+  id                String   @id @default(cuid())
+  provider          String
+  providerAccountId String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model RefreshToken {

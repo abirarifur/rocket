@@ -112,3 +112,22 @@ export const sendRequest = (
 
 export const updateCollectionVariables = (id: string, variables: unknown[]) =>
   updateCollection(id, { variables });
+
+export interface UploadResult {
+  key: string;
+  filename: string;
+  size: number;
+  contentType: string;
+}
+
+export async function uploadFile(file: File): Promise<UploadResult> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${API_BASE}/api/uploads`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+  return (await res.json()) as UploadResult;
+}

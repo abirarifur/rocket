@@ -4,11 +4,13 @@ import { useState } from 'react';
 import type { BodyMode, HttpMethod, RawLanguage } from '@rocket/types';
 import { useApp } from '@/store/appStore';
 import { canEdit } from '@/lib/teams-api';
+import { uploadFile } from '@/lib/app-api';
+import type { FormField } from '@rocket/types';
 import { KeyValueEditor } from './KeyValueEditor';
 import { CodeModal } from './CodeModal';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
-const BODY_MODES: BodyMode[] = ['none', 'raw', 'urlencoded', 'graphql'];
+const BODY_MODES: BodyMode[] = ['none', 'raw', 'form-data', 'urlencoded', 'binary', 'graphql'];
 const RAW_LANGS: RawLanguage[] = ['text', 'json', 'xml', 'html', 'javascript'];
 
 type Tab = 'params' | 'headers' | 'body' | 'auth' | 'pre' | 'tests';
@@ -189,6 +191,93 @@ function ScriptEditor({
   );
 }
 
+function FormDataEditor({
+  rows,
+  onChange,
+}: {
+  rows: FormField[];
+  onChange: (rows: FormField[]) => void;
+}) {
+  function update(i: number, patch: Partial<FormField>) {
+    onChange(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      {rows.map((r, i) => (
+        <div key={i} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+          <input type="checkbox" checked={r.enabled} onChange={(e) => update(i, { enabled: e.target.checked })} />
+          <input style={{ ...input, flex: 1 }} placeholder="key" value={r.key} onChange={(e) => update(i, { key: e.target.value })} />
+          <select
+            style={{ ...input, width: 80 }}
+            value={r.type}
+            onChange={(e) => update(i, { type: e.target.value as 'text' | 'file' })}
+          >
+            <option value="text">text</option>
+            <option value="file">file</option>
+          </select>
+          {r.type === 'file' ? (
+            <label style={{ ...input, flex: 2, cursor: 'pointer', color: r.fileRef ? 'var(--text)' : 'var(--muted)', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              {r.fileRef ? r.value || 'file selected' : 'Choose file…'}
+              <input
+                type="file"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  const up = await uploadFile(f);
+                  update(i, { fileRef: up.key, value: up.filename });
+                }}
+              />
+            </label>
+          ) : (
+            <input style={{ ...input, flex: 2 }} placeholder="value" value={r.value} onChange={(e) => update(i, { value: e.target.value })} />
+          )}
+          <button onClick={() => onChange(rows.filter((_, idx) => idx !== i))} style={{ ...input, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--muted)' }}>
+            ✕
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={() => onChange([...rows, { key: '', value: '', enabled: true, type: 'text' }])}
+        style={{ ...input, cursor: 'pointer', color: 'var(--accent)', width: 'fit-content', borderStyle: 'dashed' }}
+      >
+        + Add field
+      </button>
+    </div>
+  );
+}
+
+function BinaryEditor({
+  fileRef,
+  filename,
+  onChange,
+}: {
+  fileRef?: string;
+  filename?: string;
+  onChange: (fileRef: string, filename: string) => void;
+}) {
+  return (
+    <div>
+      <label style={{ ...input, display: 'inline-block', cursor: 'pointer', color: fileRef ? 'var(--text)' : 'var(--muted)' }}>
+        {fileRef ? `📎 ${filename ?? 'file selected'}` : 'Choose a file to upload…'}
+        <input
+          type="file"
+          style={{ display: 'none' }}
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            const up = await uploadFile(f);
+            onChange(up.key, up.filename);
+          }}
+        />
+      </label>
+      <p style={{ color: 'var(--muted)', fontSize: '0.72rem', marginTop: '0.4rem' }}>
+        The file is uploaded to object storage and sent as the raw request body.
+      </p>
+    </div>
+  );
+}
+
 function BodyEditor() {
   const { draft, updateDraft } = useApp();
   if (!draft) return null;
@@ -240,6 +329,21 @@ function BodyEditor() {
         <KeyValueEditor
           rows={body.urlencoded ?? []}
           onChange={(urlencoded) => updateDraft({ body: { ...body, urlencoded } })}
+        />
+      )}
+
+      {body.mode === 'form-data' && (
+        <FormDataEditor
+          rows={body.formData ?? []}
+          onChange={(formData) => updateDraft({ body: { ...body, formData } })}
+        />
+      )}
+
+      {body.mode === 'binary' && (
+        <BinaryEditor
+          fileRef={body.binaryRef}
+          filename={body.raw}
+          onChange={(binaryRef, filename) => updateDraft({ body: { ...body, binaryRef, raw: filename } })}
         />
       )}
 

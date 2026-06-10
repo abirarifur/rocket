@@ -10,7 +10,7 @@
     "declaration": false,
     "declarationMap": false,
     "isolatedModules": false,
-    "types": ["node"],
+    "types": ["node", "express", "multer"],
     "esModuleInterop": true
   },
   "include": ["src/**/*.ts"]

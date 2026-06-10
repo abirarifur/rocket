@@ -38,10 +38,16 @@ app.post('/proxy', async (req, reply) => {
     spec.timeoutMs ?? config.timeoutMs,
   );
   try {
+    const outBody =
+      spec.body == null
+        ? undefined
+        : spec.bodyEncoding === 'base64'
+          ? Buffer.from(spec.body, 'base64')
+          : spec.body;
     const res = await fetch(spec.url, {
       method: spec.method,
       headers: spec.headers,
-      body: spec.body ?? undefined,
+      body: outBody,
       redirect: spec.followRedirects ? 'follow' : 'manual',
       signal: controller.signal,
     });

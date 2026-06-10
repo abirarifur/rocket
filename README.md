@@ -83,10 +83,13 @@ pnpm stack:up      # build + run the whole project in Docker
 
 - **Phase 0 — Foundation & Scaffolding** ✓ monorepo, services, Docker, SSRF-safe proxy
 - **Phase 1 — Auth & Tenancy** ✓ register/login/refresh/logout, JWT cookies, email verify &
-  password reset, auto-created team + personal workspace, Redis-backed rate limiting, web auth pages
+  password reset, auto-created team + personal workspace, Redis-backed rate limiting, web auth pages,
+  **social OAuth login (Google/GitHub)** with account linking (+ a dev mock provider)
 - **Phase 2 — Collections & Request Builder** ✓ workspace `/app` UI with a collections/folders
   tree sidebar, the request builder (method/URL/params/headers/body/auth), **Send** through the
-  proxy with a response viewer (status/time/size/body/headers), autosave, and request history
+  proxy with a response viewer (status/time/size/body/headers), autosave, and request history.
+  Body modes: none / raw / **form-data** / urlencoded / **binary** / graphql — form-data file
+  fields and binary bodies upload to object storage and stream through the proxy
 - **Phase 3 — Environments & Variables** ✓ environment CRUD + switcher, collection variables,
   `{{variable}}` interpolation across URL/params/headers/body/auth, scope precedence
   (collection < environment), and **secret variables encrypted at rest** (AES-256-GCM)

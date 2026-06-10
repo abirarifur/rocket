@@ -98,5 +98,5 @@ export function resolveRequest(def: RequestDefinition): ProxyRequest {
       break; // none / inherit
   }
 
-  return { method: def.method, url, headers, body, followRedirects: true };
+  return { method: def.method, url, headers, body, bodyEncoding: 'utf8', followRedirects: true };
 }

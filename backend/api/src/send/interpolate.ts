@@ -38,6 +38,7 @@ export function interpolateRequest(
     body: {
       ...def.body,
       raw: def.body.raw !== undefined ? s(def.body.raw) : def.body.raw,
+      formData: def.body.formData?.map((f) => ({ ...f, key: s(f.key), value: s(f.value) })),
       urlencoded: def.body.urlencoded?.map((p) => ({ ...p, key: s(p.key), value: s(p.value) })),
       graphql: def.body.graphql
         ? {

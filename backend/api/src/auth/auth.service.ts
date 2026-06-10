@@ -37,21 +37,7 @@ export class AuthService {
     if (existing) throw new ConflictException('Email already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-
-    const user = await this.prisma.$transaction(async (tx) => {
-      const u = await tx.user.create({
-        data: { email: dto.email, name: dto.name, passwordHash },
-      });
-      const team = await tx.team.create({ data: { name: `${dto.name ?? 'My'}'s Team` } });
-      await tx.teamMembership.create({
-        data: { userId: u.id, teamId: team.id, role: TeamRole.OWNER },
-      });
-      await tx.workspace.create({
-        data: { teamId: team.id, name: 'My Workspace', visibility: WorkspaceVisibility.PERSONAL },
-      });
-      return u;
-    });
-
+    const user = await this.bootstrapUser(dto.email, dto.name, passwordHash);
     await this.issueEmailVerification(user.id, user.email);
     return this.issueTokens(user.id, user.email);
   }
@@ -61,6 +47,46 @@ export class AuthService {
     if (!user?.passwordHash) throw new UnauthorizedException('Invalid credentials');
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
+    return this.issueTokens(user.id, user.email);
+  }
+
+  /** Create a user with their personal team + workspace (shared by register + OAuth). */
+  private async bootstrapUser(email: string, name?: string | null, passwordHash?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const u = await tx.user.create({
+        data: { email, name: name ?? undefined, passwordHash, emailVerified: passwordHash ? null : new Date() },
+      });
+      const team = await tx.team.create({ data: { name: `${name ?? 'My'}'s Team` } });
+      await tx.teamMembership.create({
+        data: { userId: u.id, teamId: team.id, role: TeamRole.OWNER },
+      });
+      await tx.workspace.create({
+        data: { teamId: team.id, name: 'My Workspace', visibility: WorkspaceVisibility.PERSONAL },
+      });
+      return u;
+    });
+  }
+
+  /**
+   * Log in (or sign up) via an OAuth profile: match an existing identity, else
+   * link to an existing user by email, else create a new user + workspace.
+   */
+  async loginWithOAuth(
+    provider: string,
+    profile: { providerAccountId: string; email: string; name?: string },
+  ): Promise<IssuedTokens> {
+    const identity = await this.prisma.oAuthIdentity.findUnique({
+      where: { provider_providerAccountId: { provider, providerAccountId: profile.providerAccountId } },
+      include: { user: true },
+    });
+    if (identity) return this.issueTokens(identity.user.id, identity.user.email);
+
+    let user = await this.prisma.user.findUnique({ where: { email: profile.email } });
+    if (!user) user = await this.bootstrapUser(profile.email, profile.name);
+
+    await this.prisma.oAuthIdentity.create({
+      data: { provider, providerAccountId: profile.providerAccountId, userId: user.id },
+    });
     return this.issueTokens(user.id, user.email);
   }
 

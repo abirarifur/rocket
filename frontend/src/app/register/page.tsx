@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { register } from '@/lib/auth-api';
 import { AuthShell, buttonStyle, inputStyle } from '@/components/AuthShell';
+import { OAuthButtons } from '@/components/OAuthButtons';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -60,6 +61,7 @@ export default function RegisterPage() {
           {busy ? 'Creating…' : 'Create account'}
         </button>
       </form>
+      <OAuthButtons />
       <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--muted)' }}>
         Already have an account? <Link href="/login">Sign in</Link>
       </p>
