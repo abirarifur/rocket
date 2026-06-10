@@ -9,6 +9,7 @@ import { VariablesEditor } from './VariablesEditor';
 import { RunModal } from './RunModal';
 import { ImportModal } from './ImportModal';
 import { OpsModal } from './OpsModal';
+import { CommentsModal } from './CommentsModal';
 import { exportCollection } from '@/lib/interop-api';
 
 async function downloadExport(collectionId: string, name: string) {
@@ -160,6 +161,7 @@ export function Sidebar() {
   const [runFor, setRunFor] = useState<{ id: string; name: string } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [opsFor, setOpsFor] = useState<{ id: string; name: string } | null>(null);
+  const [commentsFor, setCommentsFor] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <aside
@@ -240,6 +242,13 @@ export function Sidebar() {
             >
               ↥
             </button>
+            <button
+              title="Comments"
+              onClick={(e) => (e.stopPropagation(), setCommentsFor({ id: c.id, name: c.name }))}
+              style={miniBtn}
+            >
+              💬
+            </button>
             {editable && (
               <>
                 <button
@@ -317,6 +326,13 @@ export function Sidebar() {
       {importOpen && <ImportModal onClose={() => setImportOpen(false)} />}
       {opsFor && (
         <OpsModal collectionId={opsFor.id} collectionName={opsFor.name} onClose={() => setOpsFor(null)} />
+      )}
+      {commentsFor && (
+        <CommentsModal
+          collectionId={commentsFor.id}
+          collectionName={commentsFor.name}
+          onClose={() => setCommentsFor(null)}
+        />
       )}
     </aside>
   );

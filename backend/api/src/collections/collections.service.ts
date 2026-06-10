@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
@@ -9,6 +10,7 @@ export class CollectionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenancy: TenancyService,
+    private readonly events: EventEmitter2,
   ) {}
 
   async create(userId: string, workspaceId: string, dto: CreateCollectionDto) {
@@ -30,7 +32,7 @@ export class CollectionsService {
   }
 
   async update(userId: string, collectionId: string, dto: UpdateCollectionDto) {
-    await this.tenancy.assertCollectionAccess(userId, collectionId, 'EDITOR');
+    const { collection } = await this.tenancy.assertCollectionAccess(userId, collectionId, 'EDITOR');
     const data: Prisma.CollectionUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.description !== undefined) data.description = dto.description;
@@ -38,7 +40,14 @@ export class CollectionsService {
     if (dto.variables !== undefined) {
       data.variables = dto.variables as unknown as Prisma.InputJsonValue;
     }
-    return this.prisma.collection.update({ where: { id: collectionId }, data });
+    const updated = await this.prisma.collection.update({ where: { id: collectionId }, data });
+    // Notify collaborators in the workspace so their views refresh live.
+    this.events.emit('collection.updated', {
+      workspaceId: collection.workspaceId,
+      collectionId,
+      byUserId: userId,
+    });
+    return updated;
   }
 
   async remove(userId: string, collectionId: string) {

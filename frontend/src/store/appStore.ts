@@ -17,6 +17,7 @@ import {
   updateRequest,
 } from '@/lib/tree';
 import * as interopApi from '@/lib/interop-api';
+import { getSocket, type PresenceEntry } from '@/lib/socket';
 
 type Tree = CollectionNode[];
 
@@ -43,6 +44,12 @@ interface AppState {
   environments: envApi.Environment[];
   activeEnvironmentId: string | null;
 
+  // Realtime collaboration
+  meId: string | null;
+  presence: PresenceEntry[];
+
+  setMe: (id: string) => void;
+  connectRealtime: () => void;
   init: (workspaceId?: string) => Promise<void>;
   switchWorkspace: (workspaceId: string) => Promise<void>;
   loadCollection: (id: string) => Promise<void>;
@@ -92,6 +99,29 @@ export const useApp = create<AppState>((set, get) => ({
   scriptError: null,
   environments: [],
   activeEnvironmentId: null,
+  meId: null,
+  presence: [],
+
+  setMe(id) {
+    set({ meId: id });
+  },
+
+  /** Connect the realtime socket and register presence + live-update handlers. */
+  connectRealtime() {
+    const socket = getSocket();
+    socket.off('presence');
+    socket.off('collection:updated');
+    socket.on('presence', (list: PresenceEntry[]) => set({ presence: list }));
+    socket.on('collection:updated', async (e: { collectionId: string; byUserId: string }) => {
+      // Ignore our own edits; refetch others' changes into the cache (live sidebar).
+      if (e.byUserId === get().meId) return;
+      if (!get().cache[e.collectionId]) return;
+      const full = await api.getCollection(e.collectionId);
+      set({ cache: { ...get().cache, [e.collectionId]: full } });
+    });
+    const ws = get().workspaceId;
+    if (ws) socket.emit('join', { workspaceId: ws });
+  },
 
   async init(workspaceId) {
     const workspaces = await api.listWorkspaces();
@@ -103,7 +133,11 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   async switchWorkspace(workspaceId) {
+    const prev = get().workspaceId;
     const summary = get().workspaces.find((w) => w.id === workspaceId);
+    const socket = getSocket();
+    if (prev && prev !== workspaceId) socket.emit('leave', { workspaceId: prev });
+    socket.emit('join', { workspaceId });
     const [detail, environments] = await Promise.all([
       api.getWorkspace(workspaceId),
       envApi.listEnvironments(workspaceId),
@@ -123,6 +157,7 @@ export const useApp = create<AppState>((set, get) => ({
       draft: null,
       response: null,
       activeEnvironmentId: null,
+      presence: [],
     });
   },
 
@@ -190,6 +225,8 @@ export const useApp = create<AppState>((set, get) => ({
       response: null,
       sendError: null,
     });
+    const ws = get().workspaceId;
+    if (ws) getSocket().emit('view', { workspaceId: ws, collectionId });
   },
 
   updateDraft(patch) {

@@ -132,8 +132,21 @@ pnpm stack:up      # build + run the whole project in Docker
 - **Phase 8 — Mock Servers, Monitors & Docs** ✓ **mock servers** (routes derived from a
   collection, hosted at `/api/mock/:id/*`), **monitors** (BullMQ repeatable schedule, run
   history, webhook-on-failure), and auto-generated **public API docs** at `/docs/:collectionId`
+- **Phase 9 — Real-time Collaboration** ✓ socket.io gateway (cookie-JWT auth, workspace rooms),
+  **live presence** (online-user avatars), **live updates** (a collaborator's collection edits
+  refresh others' sidebars via server events), and **comments** on collections with live broadcast.
+  *(Full CRDT/OT co-editing of a single request is a documented follow-on.)*
 
-Next: **Phase 9 — Real-time Collaboration** (deferred per the plan).
+### Phase 9 endpoints / events
+
+| Kind | Name | Notes |
+| ---- | ---- | ----- |
+| WS   | `join` / `view` / `leave`     | workspace presence rooms |
+| WS   | `presence`                    | online users + what they're viewing |
+| WS   | `collection:updated`          | broadcast on any collection edit |
+| WS   | `comment:created`             | broadcast on new comment |
+| REST | `GET/POST /api/collections/:id/comments` | list / add comments |
+| REST | `DELETE /api/comments/:id`    | author or admin |
 
 ### Phase 8 endpoints
 

@@ -34,6 +34,24 @@ model User {
   refreshTokens RefreshToken[]
   authTokens    AuthToken[]
   oauthIdentities OAuthIdentity[]
+  comments      Comment[]
+}
+
+model Comment {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  collectionId  String
+  // Optional: targets a specific request/folder node id within the collection tree.
+  requestNodeId String?
+  // Optional: parent comment id for threaded replies.
+  parentId      String?
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  body          String
+  createdAt     DateTime @default(now())
+
+  @@index([collectionId])
+  @@index([workspaceId])
 }
 
 model OAuthIdentity {

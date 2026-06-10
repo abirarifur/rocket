@@ -10,10 +10,11 @@ import { ResponseViewer } from '@/components/ResponseViewer';
 import { EnvironmentBar } from '@/components/EnvironmentBar';
 import { WorkspaceBar } from '@/components/WorkspaceBar';
 import { MembersBar } from '@/components/MembersBar';
+import { PresenceBar } from '@/components/PresenceBar';
 
 export default function AppPage() {
   const router = useRouter();
-  const { init } = useApp();
+  const { init, setMe, connectRealtime } = useApp();
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
 
@@ -24,10 +25,12 @@ export default function AppPage() {
         return;
       }
       setEmail(me.email);
+      setMe(me.id);
       await init(me.defaultWorkspace?.id);
+      connectRealtime();
       setReady(true);
     });
-  }, [init, router]);
+  }, [init, router, setMe, connectRealtime]);
 
   if (!ready) {
     return <div style={{ padding: '4rem', color: 'var(--muted)' }}>Loading workspace…</div>;
@@ -49,6 +52,7 @@ export default function AppPage() {
         </strong>
         <WorkspaceBar />
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <PresenceBar />
           <EnvironmentBar />
           <MembersBar />
           <span style={{ color: 'var(--muted)', fontSize: '0.82rem' }}>{email}</span>
