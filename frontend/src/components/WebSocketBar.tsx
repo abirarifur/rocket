@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Plug } from 'lucide-react';
 import { Modal } from './Modal';
 
 const ctrl: React.CSSProperties = {
@@ -23,8 +24,8 @@ export function WebSocketBar() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} title="WebSocket tester">
-        🔌 WS
+      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} className="inline-flex items-center gap-1.5" title="WebSocket tester">
+        <Plug size={15} /> WS
       </button>
       {open && <WsModal onClose={() => setOpen(false)} />}
     </>

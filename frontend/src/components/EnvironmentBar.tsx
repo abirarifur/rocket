@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Layers } from 'lucide-react';
 import type { Variable } from '@rocket/types';
 import { useApp } from '@/store/appStore';
 import { Modal } from './Modal';
@@ -34,8 +35,8 @@ export function EnvironmentBar() {
           </option>
         ))}
       </select>
-      <button onClick={() => setManaging(true)} style={{ ...ctrl, cursor: 'pointer' }}>
-        ⚙ Environments
+      <button onClick={() => setManaging(true)} style={{ ...ctrl, cursor: 'pointer' }} className="inline-flex items-center gap-1.5">
+        <Layers size={15} /> Environments
       </button>
       {managing && <ManageModal onClose={() => setManaging(false)} />}
     </>

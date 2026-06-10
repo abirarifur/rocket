@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useApp } from '@/store/appStore';
 import { Modal } from './Modal';
 import * as teams from '@/lib/teams-api';
+import { Users } from 'lucide-react';
 import { canAdmin, type Member, type Role } from '@/lib/teams-api';
 
 const ctrl: React.CSSProperties = {
@@ -21,8 +22,8 @@ export function MembersBar() {
   if (!teamId) return null;
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }}>
-        👥 Team
+      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} className="inline-flex items-center gap-1.5">
+        <Users size={15} /> Team
       </button>
       {open && <MembersModal teamId={teamId} myRole={role} onClose={() => setOpen(false)} />}
     </>

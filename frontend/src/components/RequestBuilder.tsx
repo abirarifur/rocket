@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { BodyMode, HttpMethod, RawLanguage } from '@rocket/types';
+import { Code2, Send } from 'lucide-react';
 import { useApp } from '@/store/appStore';
 import { canEdit } from '@/lib/teams-api';
 import { uploadFile } from '@/lib/app-api';
@@ -84,7 +85,7 @@ export function RequestBuilder() {
             cursor: 'pointer',
           }}
         >
-          {'</>'}
+          <Code2 size={16} />
         </button>
         <button
           onClick={() => void send()}
@@ -99,8 +100,9 @@ export function RequestBuilder() {
             cursor: sending ? 'default' : 'pointer',
             opacity: !draft.url ? 0.5 : 1,
           }}
+          className="inline-flex items-center gap-1.5"
         >
-          {sending ? '…' : 'Send'}
+          <Send size={15} /> {sending ? 'Sending…' : 'Send'}
         </button>
       </div>
       {codeOpen && <CodeModal request={draft} onClose={() => setCodeOpen(false)} />}

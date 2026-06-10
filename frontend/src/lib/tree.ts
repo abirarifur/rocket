@@ -149,21 +149,20 @@ export function newId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${counter}`;
 }
 
-export function emptyRequestNode(name = 'New Request'): RequestNode {
+export function emptyRequest(name = 'Untitled Request'): RequestDefinition {
   return {
-    id: newId('req'),
-    type: 'request',
-    order: 0,
-    request: {
-      name,
-      method: 'GET',
-      url: '',
-      params: [],
-      headers: [],
-      body: { mode: 'none' },
-      auth: { type: 'none' },
-    },
+    name,
+    method: 'GET',
+    url: '',
+    params: [],
+    headers: [],
+    body: { mode: 'none' },
+    auth: { type: 'none' },
   };
+}
+
+export function emptyRequestNode(name = 'New Request'): RequestNode {
+  return { id: newId('req'), type: 'request', order: 0, request: emptyRequest(name) };
 }
 
 export function emptyFolder(name = 'New Folder'): FolderNode {

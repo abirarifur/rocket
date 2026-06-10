@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Cookie } from 'lucide-react';
 import { useApp } from '@/store/appStore';
 import * as jar from '@/lib/cookie-jar';
 import { Modal } from './Modal';
@@ -21,8 +22,8 @@ export function CookiesBar() {
   if (!workspaceId) return null;
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} title="Cookies">
-        🍪
+      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} className="inline-flex items-center" title="Cookies">
+        <Cookie size={15} />
       </button>
       {open && <CookiesModal workspaceId={workspaceId} onClose={() => setOpen(false)} />}
     </>

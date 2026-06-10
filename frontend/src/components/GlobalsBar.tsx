@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Globe } from 'lucide-react';
 import type { Variable } from '@rocket/types';
 import { useApp } from '@/store/appStore';
 import * as teams from '@/lib/teams-api';
@@ -24,8 +25,8 @@ export function GlobalsBar() {
   if (!teamId) return null;
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} title="Global variables">
-        🌐 Globals
+      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} className="inline-flex items-center gap-1.5" title="Global variables">
+        <Globe size={15} /> Globals
       </button>
       {open && <GlobalsModal teamId={teamId} editable={canEdit(role)} onClose={() => setOpen(false)} />}
     </>

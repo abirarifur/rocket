@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { History } from 'lucide-react';
 import { useApp } from '@/store/appStore';
 import { listHistory, type HistoryEntry } from '@/lib/history-api';
 import { Modal } from './Modal';
@@ -29,8 +30,8 @@ export function HistoryBar() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} title="Request history">
-        🕘 History
+      <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} className="inline-flex items-center gap-1.5" title="Request history">
+        <History size={15} /> History
       </button>
       {open && workspaceId && (
         <HistoryModal

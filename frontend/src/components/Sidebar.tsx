@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Box, ChevronDown, ChevronRight, Download, Folder, MoreHorizontal, Plus } from 'lucide-react';
 import type { CollectionNode, Variable } from '@rocket/types';
 import { useApp } from '@/store/appStore';
 import { canEdit } from '@/lib/teams-api';
@@ -41,11 +42,11 @@ function Kebab({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
   return (
     <button
       title="More"
-      className="kebab"
+      className="kebab inline-flex items-center"
       onClick={(e) => (e.stopPropagation(), onClick(e))}
       style={miniBtn}
     >
-      ⋯
+      <MoreHorizontal size={15} />
     </button>
   );
 }
@@ -149,12 +150,12 @@ function TreeNodes({
               }}
               className="tree-row"
             >
-              <span>📁</span>
+              <Folder size={15} className="text-muted-foreground" />
               <span style={{ flex: 1 }}>{node.name}</span>
               {editable && (
                 <>
-                  <button title="Add request" className="kebab" onClick={() => void addRequest(collectionId, node.id)} style={miniBtn}>
-                    +
+                  <button title="Add request" className="kebab inline-flex items-center" onClick={() => void addRequest(collectionId, node.id)} style={miniBtn}>
+                    <Plus size={14} />
                   </button>
                   <Kebab onClick={(e) => openMenu(e, folderItems(node))} />
                 </>
@@ -249,8 +250,7 @@ export function Sidebar() {
   return (
     <aside
       style={{
-        width: 300,
-        borderRight: '1px solid var(--border)',
+        width: '100%',
         height: '100%',
         overflowY: 'auto',
         background: 'var(--panel)',
@@ -272,20 +272,22 @@ export function Sidebar() {
           <>
             <button
               onClick={() => setImportOpen(true)}
-              style={{ ...miniBtn, fontSize: '0.9rem' }}
+              style={miniBtn}
+              className="inline-flex items-center"
               title="Import (Postman / OpenAPI / HAR / cURL)"
             >
-              ↧
+              <Download size={16} />
             </button>
             <button
               onClick={() => {
                 const name = window.prompt('New collection name', 'My Collection');
                 if (name) void createCollection(name);
               }}
-              style={{ ...miniBtn, color: 'var(--accent)', fontSize: '1.1rem' }}
+              style={{ ...miniBtn, color: 'var(--accent)' }}
+              className="inline-flex items-center"
               title="New collection"
             >
-              +
+              <Plus size={18} />
             </button>
           </>
         )}
@@ -336,12 +338,14 @@ export function Sidebar() {
             onClick={() => void toggleCollection(c.id)}
             onContextMenu={(e) => openMenu(e, collectionItems(c))}
           >
-            <span style={{ color: 'var(--muted)' }}>{searching || expanded[c.id] ? '▾' : '▸'}</span>
-            <span style={{ fontSize: '0.9rem' }}>📦</span>
+            <span className="text-muted-foreground inline-flex items-center">
+              {searching || expanded[c.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <Box size={15} className="text-primary" />
             <strong style={{ flex: 1, fontSize: '0.88rem' }}>{c.name}</strong>
             {editable && (
-              <button title="Add request" className="kebab" onClick={(e) => (e.stopPropagation(), addRequest(c.id, null))} style={miniBtn}>
-                +
+              <button title="Add request" className="kebab inline-flex items-center" onClick={(e) => (e.stopPropagation(), addRequest(c.id, null))} style={miniBtn}>
+                <Plus size={14} />
               </button>
             )}
             <Kebab onClick={(e) => openMenu(e, collectionItems(c))} />

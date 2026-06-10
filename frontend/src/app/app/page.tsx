@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { fetchMe, logout } from '@/lib/auth-api';
 import { useApp } from '@/store/appStore';
 import { Sidebar } from '@/components/Sidebar';
+import { TabBar } from '@/components/TabBar';
 import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { EnvironmentBar } from '@/components/EnvironmentBar';
@@ -22,6 +23,34 @@ export default function AppPage() {
   const { init, setMe, connectRealtime } = useApp();
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(300);
+
+  // Restore persisted sidebar width.
+  useEffect(() => {
+    const saved = Number(localStorage.getItem('rocket-sidebar-w'));
+    if (saved >= 220 && saved <= 560) setSidebarWidth(saved);
+  }, []);
+
+  // Draggable sidebar resizer.
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const onMove = (ev: MouseEvent) => {
+      const w = Math.min(560, Math.max(220, ev.clientX));
+      setSidebarWidth(w);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      document.body.style.userSelect = '';
+      setSidebarWidth((w) => {
+        localStorage.setItem('rocket-sidebar-w', String(w));
+        return w;
+      });
+    };
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   useEffect(() => {
     fetchMe().then(async (me) => {
@@ -107,8 +136,17 @@ export default function AppPage() {
       </header>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <Sidebar />
+        <div style={{ width: sidebarWidth }} className="shrink-0 border-r border-border">
+          <Sidebar />
+        </div>
+        <div
+          onMouseDown={startResize}
+          className="w-1 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-primary/40"
+          style={{ marginLeft: -2, marginRight: -2, zIndex: 10 }}
+          title="Drag to resize"
+        />
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <TabBar />
           <RequestBuilder />
           <ResponseViewer />
         </main>

@@ -9,6 +9,7 @@ import * as teamsApi from '@/lib/teams-api';
 import {
   addNode,
   emptyFolder,
+  emptyRequest,
   emptyRequestNode,
   findRequest,
   moveBefore,
@@ -22,6 +23,23 @@ import { getSocket, type PresenceEntry } from '@/lib/socket';
 import * as cookieJar from '@/lib/cookie-jar';
 
 type Tree = CollectionNode[];
+
+export interface Tab {
+  id: string;
+  collectionId: string | null;
+  nodeId: string | null;
+  label: string;
+  method: string;
+}
+
+interface TabSnapshot {
+  draft: RequestDefinition | null;
+  response: api.ProxyResponseDto | null;
+  testResults: api.ScriptTest[];
+  scriptLogs: string[];
+  scriptError: string | null;
+  sendError: string | null;
+}
 
 interface AppState {
   workspaceId: string | null;
@@ -41,6 +59,14 @@ interface AppState {
   testResults: api.ScriptTest[];
   scriptLogs: string[];
   scriptError: string | null;
+
+  // Open request tabs (each preserves its own draft/response state)
+  tabs: Tab[];
+  activeTabId: string | null;
+  tabStash: Record<string, TabSnapshot>;
+  setActiveTab: (id: string) => void;
+  closeTab: (id: string) => void;
+  newTab: () => void;
 
   // Environments
   environments: envApi.Environment[];
@@ -101,6 +127,9 @@ export const useApp = create<AppState>((set, get) => ({
   testResults: [],
   scriptLogs: [],
   scriptError: null,
+  tabs: [],
+  activeTabId: null,
+  tabStash: {},
   environments: [],
   activeEnvironmentId: null,
   meId: null,
@@ -160,6 +189,9 @@ export const useApp = create<AppState>((set, get) => ({
       activeNodeId: null,
       draft: null,
       response: null,
+      tabs: [],
+      activeTabId: null,
+      tabStash: {},
       activeEnvironmentId: null,
       presence: [],
     });
@@ -222,20 +254,37 @@ export const useApp = create<AppState>((set, get) => ({
     if (!col) return;
     const node = findRequest(col.tree as Tree, nodeId);
     if (!node) return;
+    // Focus an existing tab for this request, or open a new one.
+    const existing = get().tabs.find((t) => t.collectionId === collectionId && t.nodeId === nodeId);
+    if (existing) {
+      get().setActiveTab(existing.id);
+      return;
+    }
+    stashActive(get, set);
+    const tab: Tab = { id: newId('tab'), collectionId, nodeId, label: node.request.name, method: node.request.method };
     set({
+      tabs: [...get().tabs, tab],
+      activeTabId: tab.id,
       activeCollectionId: collectionId,
       activeNodeId: nodeId,
       draft: structuredClone(node.request),
       response: null,
       sendError: null,
+      testResults: [],
+      scriptLogs: [],
+      scriptError: null,
     });
     const ws = get().workspaceId;
     if (ws) getSocket().emit('view', { workspaceId: ws, collectionId });
   },
 
-  /** Load a request into the builder as an ephemeral draft (e.g. from history). */
+  /** Load a request into a new tab as an ephemeral draft (e.g. from history). */
   loadDraft(request) {
+    stashActive(get, set);
+    const tab: Tab = { id: newId('tab'), collectionId: null, nodeId: null, label: request.name || 'Untitled', method: request.method };
     set({
+      tabs: [...get().tabs, tab],
+      activeTabId: tab.id,
       activeCollectionId: null,
       activeNodeId: null,
       draft: structuredClone(request),
@@ -243,13 +292,61 @@ export const useApp = create<AppState>((set, get) => ({
       sendError: null,
       testResults: [],
       scriptLogs: [],
+      scriptError: null,
     });
+  },
+
+  newTab() {
+    stashActive(get, set);
+    const tab: Tab = { id: newId('tab'), collectionId: null, nodeId: null, label: 'Untitled', method: 'GET' };
+    set({
+      tabs: [...get().tabs, tab],
+      activeTabId: tab.id,
+      activeCollectionId: null,
+      activeNodeId: null,
+      draft: emptyRequest(),
+      response: null,
+      sendError: null,
+      testResults: [],
+      scriptLogs: [],
+      scriptError: null,
+    });
+  },
+
+  setActiveTab(id) {
+    if (id === get().activeTabId) return;
+    const tab = get().tabs.find((t) => t.id === id);
+    if (!tab) return;
+    stashActive(get, set);
+    set({ activeTabId: id, activeCollectionId: tab.collectionId, activeNodeId: tab.nodeId, ...restoreSnapshot(get().tabStash[id]) });
+    const ws = get().workspaceId;
+    if (tab.collectionId && ws) getSocket().emit('view', { workspaceId: ws, collectionId: tab.collectionId });
+  },
+
+  closeTab(id) {
+    const idx = get().tabs.findIndex((t) => t.id === id);
+    const tabs = get().tabs.filter((t) => t.id !== id);
+    const { [id]: _removed, ...tabStash } = get().tabStash;
+    if (get().activeTabId !== id) {
+      set({ tabs, tabStash });
+      return;
+    }
+    const next = tabs[idx] ?? tabs[idx - 1] ?? null;
+    if (next) {
+      set({ tabs, tabStash, activeTabId: next.id, activeCollectionId: next.collectionId, activeNodeId: next.nodeId, ...restoreSnapshot(tabStash[next.id]) });
+    } else {
+      set({ tabs, tabStash, activeTabId: null, activeCollectionId: null, activeNodeId: null, ...restoreSnapshot(undefined) });
+    }
   },
 
   updateDraft(patch) {
     const draft = get().draft;
     if (!draft) return;
-    set({ draft: { ...draft, ...patch } });
+    const next = { ...draft, ...patch };
+    const tabs = get().tabs.map((t) =>
+      t.id === get().activeTabId ? { ...t, label: next.name || 'Untitled', method: next.method } : t,
+    );
+    set({ draft: next, tabs });
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => void get().saveActive(), 600);
   },
@@ -340,7 +437,9 @@ export const useApp = create<AppState>((set, get) => ({
 
   async deleteNode(collectionId, nodeId) {
     await mutateTree(get, set, collectionId, (tree) => removeNode(tree, nodeId));
-    if (get().activeNodeId === nodeId) set({ activeNodeId: null, draft: null, response: null });
+    // Close any open tab for the deleted request.
+    const tab = get().tabs.find((t) => t.collectionId === collectionId && t.nodeId === nodeId);
+    if (tab) get().closeTab(tab.id);
   },
 
   async deleteCollection(id) {
@@ -403,6 +502,37 @@ export const useApp = create<AppState>((set, get) => ({
     get().selectRequest(collectionId, node.id);
   },
 }));
+
+/** Save the active tab's live state into the stash before switching away. */
+function stashActive(get: () => AppState, set: (p: Partial<AppState>) => void) {
+  const s = get();
+  if (!s.activeTabId) return;
+  set({
+    tabStash: {
+      ...s.tabStash,
+      [s.activeTabId]: {
+        draft: s.draft,
+        response: s.response,
+        testResults: s.testResults,
+        scriptLogs: s.scriptLogs,
+        scriptError: s.scriptError,
+        sendError: s.sendError,
+      },
+    },
+  });
+}
+
+/** Top-level fields to apply when activating a tab (from its snapshot). */
+function restoreSnapshot(snap: TabSnapshot | undefined) {
+  return {
+    draft: snap?.draft ?? null,
+    response: snap?.response ?? null,
+    testResults: snap?.testResults ?? [],
+    scriptLogs: snap?.scriptLogs ?? [],
+    scriptError: snap?.scriptError ?? null,
+    sendError: snap?.sendError ?? null,
+  };
+}
 
 /** Apply an immutable tree transform, update the cache, and persist. */
 async function mutateTree(

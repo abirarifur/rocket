@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 
 /** Light/dark theme toggle, persisted in localStorage and applied to <html>. */
 export function ThemeToggle() {
@@ -29,11 +30,11 @@ export function ThemeToggle() {
         borderRadius: 6,
         color: 'var(--text)',
         cursor: 'pointer',
-        padding: '0.35rem 0.55rem',
-        fontSize: '0.9rem',
+        padding: '0.4rem',
       }}
+      className="inline-flex items-center"
     >
-      {theme === 'dark' ? '☀️' : '🌙'}
+      {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
     </button>
   );
 }
