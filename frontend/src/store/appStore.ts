@@ -26,6 +26,7 @@ type Tree = CollectionNode[];
 
 export interface Tab {
   id: string;
+  kind: 'request' | 'environment';
   collectionId: string | null;
   nodeId: string | null;
   label: string;
@@ -67,6 +68,7 @@ interface AppState {
   setActiveTab: (id: string) => void;
   closeTab: (id: string) => void;
   newTab: () => void;
+  openEnvironmentTab: () => void;
 
   // Environments
   environments: envApi.Environment[];
@@ -283,7 +285,7 @@ export const useApp = create<AppState>((set, get) => ({
       return;
     }
     stashActive(get, set);
-    const tab: Tab = { id: newId('tab'), collectionId, nodeId, label: node.request.name, method: node.request.method };
+    const tab: Tab = { id: newId('tab'), kind: 'request', collectionId, nodeId, label: node.request.name, method: node.request.method };
     set({
       tabs: [...get().tabs, tab],
       activeTabId: tab.id,
@@ -303,7 +305,7 @@ export const useApp = create<AppState>((set, get) => ({
   /** Load a request into a new tab as an ephemeral draft (e.g. from history). */
   loadDraft(request) {
     stashActive(get, set);
-    const tab: Tab = { id: newId('tab'), collectionId: null, nodeId: null, label: request.name || 'Untitled', method: request.method };
+    const tab: Tab = { id: newId('tab'), kind: 'request', collectionId: null, nodeId: null, label: request.name || 'Untitled', method: request.method };
     set({
       tabs: [...get().tabs, tab],
       activeTabId: tab.id,
@@ -320,7 +322,7 @@ export const useApp = create<AppState>((set, get) => ({
 
   newTab() {
     stashActive(get, set);
-    const tab: Tab = { id: newId('tab'), collectionId: null, nodeId: null, label: 'Untitled', method: 'GET' };
+    const tab: Tab = { id: newId('tab'), kind: 'request', collectionId: null, nodeId: null, label: 'Untitled', method: 'GET' };
     set({
       tabs: [...get().tabs, tab],
       activeTabId: tab.id,
@@ -332,6 +334,24 @@ export const useApp = create<AppState>((set, get) => ({
       testResults: [],
       scriptLogs: [],
       scriptError: null,
+    });
+  },
+
+  /** Open (or focus) the Environments editor tab — a full panel, not a modal. */
+  openEnvironmentTab() {
+    const existing = get().tabs.find((t) => t.kind === 'environment');
+    if (existing) {
+      get().setActiveTab(existing.id);
+      return;
+    }
+    stashActive(get, set);
+    const tab: Tab = { id: newId('tab'), kind: 'environment', collectionId: null, nodeId: null, label: 'Environments', method: '' };
+    set({
+      tabs: [...get().tabs, tab],
+      activeTabId: tab.id,
+      activeCollectionId: null,
+      activeNodeId: null,
+      ...restoreSnapshot(undefined),
     });
   },
 

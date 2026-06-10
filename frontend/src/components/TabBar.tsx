@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, X } from 'lucide-react';
+import { Layers, Plus, X } from 'lucide-react';
 import { useApp } from '@/store/appStore';
 import { cn } from '@/lib/utils';
 
@@ -32,9 +32,13 @@ export function TabBar() {
             )}
             style={active ? { boxShadow: 'inset 0 -2px 0 var(--accent)' } : undefined}
           >
-            <span className="text-[0.6rem] font-bold shrink-0" style={{ color: METHOD_COLOR[t.method] ?? 'var(--muted)' }}>
-              {t.method}
-            </span>
+            {t.kind === 'environment' ? (
+              <Layers className="h-3.5 w-3.5 shrink-0 text-primary" />
+            ) : (
+              <span className="text-[0.6rem] font-bold shrink-0" style={{ color: METHOD_COLOR[t.method] ?? 'var(--muted)' }}>
+                {t.method}
+              </span>
+            )}
             <span className="flex-1 truncate text-foreground/90">{t.label}</span>
             <button
               onClick={(e) => {

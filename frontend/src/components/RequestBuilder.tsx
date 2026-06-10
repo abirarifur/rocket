@@ -55,8 +55,7 @@ function UrlVariableHint({ url }: { url: string }) {
       {missing.map((t) => (
         <code key={t} style={{ background: 'rgba(255,107,53,0.12)', padding: '0 4px', borderRadius: 4, marginRight: 4 }}>{`{{${t}}}`}</code>
       ))}
-      — click the <strong>eye</strong> icon next to the environment selector (top-right) to add{' '}
-      {missing.length > 1 ? 'them' : 'it'}.
+      — open <strong>Environments</strong> (top-right) to add {missing.length > 1 ? 'them' : 'it'}.
     </div>
   );
 }

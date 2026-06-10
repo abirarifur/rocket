@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { TabBar } from '@/components/TabBar';
 import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
+import { EnvironmentEditor } from '@/components/EnvironmentEditor';
 import { EnvironmentBar } from '@/components/EnvironmentBar';
 import { WorkspaceBar } from '@/components/WorkspaceBar';
 import { MembersBar } from '@/components/MembersBar';
@@ -148,11 +149,22 @@ export default function AppPage() {
         />
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <TabBar />
-          <RequestBuilder />
-          <ResponseViewer />
+          <MainPanel />
         </main>
       </div>
       <DialogHost />
     </div>
+  );
+}
+
+/** Renders the active tab's content: the Environments editor, or the request builder. */
+function MainPanel() {
+  const kind = useApp((s) => s.tabs.find((t) => t.id === s.activeTabId)?.kind ?? 'request');
+  if (kind === 'environment') return <EnvironmentEditor />;
+  return (
+    <>
+      <RequestBuilder />
+      <ResponseViewer />
+    </>
   );
 }
