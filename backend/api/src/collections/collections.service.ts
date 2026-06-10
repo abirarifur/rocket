@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
+import { QuotaService } from '../quota/quota.service';
 import type { CreateCollectionDto, UpdateCollectionDto } from './collections.schemas';
 
 @Injectable()
@@ -11,10 +12,12 @@ export class CollectionsService {
     private readonly prisma: PrismaService,
     private readonly tenancy: TenancyService,
     private readonly events: EventEmitter2,
+    private readonly quota: QuotaService,
   ) {}
 
   async create(userId: string, workspaceId: string, dto: CreateCollectionDto) {
-    await this.tenancy.assertWorkspaceAccess(userId, workspaceId, 'EDITOR');
+    const { workspace } = await this.tenancy.assertWorkspaceAccess(userId, workspaceId, 'EDITOR');
+    await this.quota.assertCanCreate(workspace.teamId, 'collections');
     return this.prisma.collection.create({
       data: {
         workspaceId,

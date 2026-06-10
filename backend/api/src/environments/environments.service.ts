@@ -4,6 +4,7 @@ import type { Variable } from '@rocket/types';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
 import { CryptoService } from '../crypto/crypto.service';
+import { QuotaService } from '../quota/quota.service';
 import type { CreateEnvironmentDto, UpdateEnvironmentDto } from './environments.schemas';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class EnvironmentsService {
     private readonly prisma: PrismaService,
     private readonly tenancy: TenancyService,
     private readonly crypto: CryptoService,
+    private readonly quota: QuotaService,
   ) {}
 
   /** Encrypt secret values before persisting (non-secret values stay plaintext). */
@@ -38,7 +40,8 @@ export class EnvironmentsService {
   }
 
   async create(userId: string, workspaceId: string, dto: CreateEnvironmentDto) {
-    await this.tenancy.assertWorkspaceAccess(userId, workspaceId, 'EDITOR');
+    const { workspace } = await this.tenancy.assertWorkspaceAccess(userId, workspaceId, 'EDITOR');
+    await this.quota.assertCanCreate(workspace.teamId, 'environments');
     const env = await this.prisma.environment.create({
       data: {
         workspaceId,

@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import type { CollectionNode } from '@rocket/types';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
+import { QuotaService } from '../quota/quota.service';
 import type { CreateMockDto, MockRoute, UpdateMockDto } from './mocks.schemas';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class MocksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenancy: TenancyService,
+    private readonly quota: QuotaService,
   ) {}
 
   async list(userId: string, workspaceId: string) {
@@ -20,6 +22,7 @@ export class MocksService {
   /** Create a mock server, seeding routes from the collection's requests. */
   async create(userId: string, dto: CreateMockDto) {
     const { collection } = await this.tenancy.assertCollectionAccess(userId, dto.collectionId, 'EDITOR');
+    await this.quota.assertCanCreate(collection.workspace.teamId, 'mocks');
     const routes = deriveRoutes(collection.tree as unknown as CollectionNode[]);
     return this.prisma.mockServer.create({
       data: {

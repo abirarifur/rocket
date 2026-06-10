@@ -16,7 +16,7 @@ async function bootstrap() {
     origin: process.env.WEB_ORIGIN ?? 'http://localhost:3001',
     credentials: true,
   });
-  app.setGlobalPrefix('api', { exclude: ['health', 'ready'] });
+  app.setGlobalPrefix('api', { exclude: ['health', 'ready', 'metrics'] });
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   // Close DB/Redis/queue connections on SIGTERM/SIGINT (graceful k8s shutdown).

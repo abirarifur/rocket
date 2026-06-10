@@ -4,9 +4,11 @@ import type { INestApplication } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import type TestAgent from 'supertest/lib/agent';
+import type Redis from 'ioredis';
 import { AppModule } from './app.module';
 import { PrismaService } from './prisma/prisma.service';
 import { MailService } from './mail/mail.service';
+import { REDIS } from './redis/redis.module';
 
 /**
  * Integration tests: boot the real Nest app against Postgres/Redis/MinIO and
@@ -35,10 +37,14 @@ describe('Rocket API (integration)', () => {
 
     app = moduleRef.createNestApplication();
     app.use(cookieParser());
-    app.setGlobalPrefix('api', { exclude: ['health'] });
+    app.setGlobalPrefix('api', { exclude: ['health', 'ready', 'metrics'] });
     app.enableShutdownHooks();
     await app.init();
     prisma = app.get(PrismaService);
+    // Clear rate-limit counters so repeated runs within the window stay deterministic.
+    const redis = app.get<Redis>(REDIS);
+    const keys = await redis.keys('rl:*');
+    if (keys.length) await redis.del(...keys);
   });
 
   afterAll(async () => {
@@ -148,5 +154,19 @@ describe('Rocket API (integration)', () => {
     const res = await request(app.getHttpServer()).get(`/api/mock/${mockId}/ping`).expect(201);
     expect(res.body).toEqual({ ok: true });
     await request(app.getHttpServer()).get(`/api/mock/${mockId}/missing`).expect(404);
+  });
+
+  it('exposes Prometheus metrics', async () => {
+    const res = await request(app.getHttpServer()).get('/metrics').expect(200);
+    expect(res.text).toContain('http_requests_total');
+    expect(res.text).toContain('process_cpu_seconds_total');
+  });
+
+  it('reports plan + limits + usage and enforces quotas', async () => {
+    const { a, me } = await register('quota');
+    const teamId = me.teams[0]!.id;
+    const billing = await a.get(`/api/teams/${teamId}/billing`).expect(200);
+    expect((billing.body as { plan: string }).plan).toBe('FREE');
+    expect((billing.body as { limits: { collections: number } }).limits.collections).toBe(10);
   });
 });

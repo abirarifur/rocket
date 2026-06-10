@@ -49,3 +49,6 @@ export type SetGlobalsDto = z.infer<typeof SetGlobalsSchema>;
 
 export const TransferOwnershipSchema = z.object({ userId: z.string().min(1) });
 export type TransferOwnershipDto = z.infer<typeof TransferOwnershipSchema>;
+
+export const SetPlanSchema = z.object({ plan: z.enum(['FREE', 'PRO', 'ENTERPRISE']) });
+export type SetPlanDto = z.infer<typeof SetPlanSchema>;

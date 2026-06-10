@@ -5,6 +5,7 @@ import type { Monitor } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService } from '../tenancy/tenancy.service';
 import { RunsService } from '../runs/runs.service';
+import { QuotaService } from '../quota/quota.service';
 import type { CreateMonitorDto, UpdateMonitorDto } from './monitors.schemas';
 
 export const MONITORS_QUEUE = 'monitors';
@@ -18,6 +19,7 @@ export class MonitorsService {
     private readonly prisma: PrismaService,
     private readonly tenancy: TenancyService,
     private readonly runs: RunsService,
+    private readonly quota: QuotaService,
   ) {}
 
   async list(userId: string, workspaceId: string) {
@@ -27,6 +29,7 @@ export class MonitorsService {
 
   async create(userId: string, dto: CreateMonitorDto) {
     const { collection } = await this.tenancy.assertCollectionAccess(userId, dto.collectionId, 'EDITOR');
+    await this.quota.assertCanCreate(collection.workspace.teamId, 'monitors');
     const monitor = await this.prisma.monitor.create({
       data: {
         collectionId: collection.id,

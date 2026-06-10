@@ -97,9 +97,16 @@ model AuthToken {
   @@index([userId])
 }
 
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
 model Team {
   id          String           @id @default(cuid())
   name        String
+  plan        Plan             @default(FREE)
   // Team-wide (global) variables, lowest precedence. Secrets encrypted at rest.
   globals     Json             @default("[]")
   createdAt   DateTime         @default(now())

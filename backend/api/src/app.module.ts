@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from './prisma/prisma.module';
@@ -23,6 +23,9 @@ import { MonitorsModule } from './monitors/monitors.module';
 import { CommentsModule } from './comments/comments.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
 import { RateLimitGuard } from './common/rate-limit.guard';
+import { MetricsModule } from './metrics/metrics.module';
+import { MetricsInterceptor } from './metrics/metrics.interceptor';
+import { QuotaModule } from './quota/quota.module';
 
 const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
 
@@ -33,6 +36,8 @@ const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
       connection: { host: redisUrl.hostname, port: Number(redisUrl.port) || 6379 },
     }),
     EventEmitterModule.forRoot(),
+    MetricsModule,
+    QuotaModule,
     PrismaModule,
     RedisModule,
     TenancyModule,
@@ -56,6 +61,8 @@ const redisUrl = new URL(process.env.REDIS_URL ?? 'redis://localhost:6379');
   providers: [
     // Global Redis-backed rate limiting (per-route overrides via @RateLimit).
     { provide: APP_GUARD, useClass: RateLimitGuard },
+    // Prometheus HTTP metrics.
+    { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
   ],
 })
 export class AppModule {}

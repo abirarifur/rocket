@@ -114,6 +114,16 @@ Beyond the phased roadmap, these Postman-parity gaps are now implemented:
   Postgres/Redis/MinIO services) and the frontend build on every push/PR.
 - **Container hardening:** non-root `USER` on the proxy/runner/web images and `HEALTHCHECK` on all
   services (the API runs migrations on boot, so it stays root — use an init-container in k8s).
+- **Metrics:** Prometheus `GET /metrics` (default Node metrics + `http_requests_total` and
+  `http_request_duration_seconds` labeled by method/route/status).
+- **Plan tiers & quotas:** `FREE`/`PRO`/`ENTERPRISE` per-team limits on collections, environments,
+  monitors, mocks, and members — enforced on create (`GET /api/teams/:id/billing` shows
+  plan+limits+usage; plan changes are Stripe-webhook-ready, with a dev stub endpoint).
+- **Ops:** `ops/load-test.js` (k6) for the hot read path and `ops/backup.sh` (pg_dump + retention)
+  for scheduled backups.
+
+Still ahead in Phase 10: live Stripe checkout/webhooks, SSO/SAML/SCIM, autoscaling/HPA + read-replica
+routing, and a DR runbook.
 
 ## Status
 

@@ -9,6 +9,7 @@ import { InvitationStatus, TeamRole } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenancyService, ROLE_RANK } from '../tenancy/tenancy.service';
+import { QuotaService } from '../quota/quota.service';
 import { MailService } from '../mail/mail.service';
 import type { ChangeRoleDto, InviteDto } from './teams.schemas';
 
@@ -20,6 +21,7 @@ export class TeamsService {
     private readonly prisma: PrismaService,
     private readonly tenancy: TenancyService,
     private readonly mail: MailService,
+    private readonly quota: QuotaService,
   ) {}
 
   async listMembers(userId: string, teamId: string) {
@@ -47,6 +49,7 @@ export class TeamsService {
   /** Invite a user by email (ADMIN+). Emails an accept link (console in dev). */
   async invite(userId: string, teamId: string, dto: InviteDto) {
     await this.tenancy.assertTeamRole(userId, teamId, 'ADMIN');
+    await this.quota.assertCanCreate(teamId, 'members');
 
     // Already a member?
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });

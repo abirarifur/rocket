@@ -4,16 +4,20 @@ import { JwtAuthGuard, type AccessTokenPayload } from '../auth/jwt-auth.guard';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { TeamsService } from './teams.service';
 import { GlobalsService } from './globals.service';
+import { BillingService } from './billing.service';
+import type { Plan } from '@prisma/client';
 import {
   AcceptInviteSchema,
   ChangeRoleSchema,
   InviteSchema,
   SetGlobalsSchema,
+  SetPlanSchema,
   TransferOwnershipSchema,
   type AcceptInviteDto,
   type ChangeRoleDto,
   type InviteDto,
   type SetGlobalsDto,
+  type SetPlanDto,
   type TransferOwnershipDto,
 } from './teams.schemas';
 
@@ -23,7 +27,22 @@ export class TeamsController {
   constructor(
     private readonly teams: TeamsService,
     private readonly globals: GlobalsService,
+    private readonly billing: BillingService,
   ) {}
+
+  @Get('teams/:teamId/billing')
+  getBilling(@CurrentUser() u: AccessTokenPayload, @Param('teamId') teamId: string) {
+    return this.billing.get(u.sub, teamId);
+  }
+
+  @Post('teams/:teamId/billing/plan')
+  setPlan(
+    @CurrentUser() u: AccessTokenPayload,
+    @Param('teamId') teamId: string,
+    @Body(new ZodValidationPipe(SetPlanSchema)) dto: SetPlanDto,
+  ) {
+    return this.billing.setPlan(u.sub, teamId, dto.plan as Plan);
+  }
 
   @Get('teams/:teamId/globals')
   getGlobals(@CurrentUser() u: AccessTokenPayload, @Param('teamId') teamId: string) {
