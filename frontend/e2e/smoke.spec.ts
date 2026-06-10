@@ -27,7 +27,7 @@ test('register, create collection, send a request, see the response', async ({ p
   await page.getByText('New Request').click();
 
   // Fill the URL and send.
-  await page.getByPlaceholder('https://api.example.com/endpoint').fill('https://postman-echo.com/get');
+  await page.getByLabel('Request URL').fill('https://postman-echo.com/get');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
 
   // The response viewer shows a 2xx status and a time.

@@ -10,6 +10,7 @@ import type { FormField } from '@rocket/types';
 import { KeyValueEditor } from './KeyValueEditor';
 import { CodeModal } from './CodeModal';
 import { CodeEditor } from './CodeEditor';
+import { VariableUrlInput } from './VariableUrlInput';
 import { extractTokens, buildVarMap } from '@/lib/vars';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
@@ -101,11 +102,11 @@ export function RequestBuilder() {
             </option>
           ))}
         </select>
-        <input
+        <VariableUrlInput
           style={{ ...input, flex: 1 }}
           placeholder="https://api.example.com/endpoint"
           value={draft.url}
-          onChange={(e) => updateDraft({ url: e.target.value })}
+          onChange={(url) => updateDraft({ url })}
         />
         <button
           onClick={() => setCodeOpen(true)}
