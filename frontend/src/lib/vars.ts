@@ -10,6 +10,13 @@ export function extractTokens(input: string): string[] {
   return [...seen];
 }
 
+/** Replace {{var}} tokens using the map; unknown variables are left untouched. */
+export function interpolate(input: string, vars: Record<string, string>): string {
+  return input.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (m, key: string) =>
+    Object.prototype.hasOwnProperty.call(vars, key) ? vars[key]! : m,
+  );
+}
+
 /**
  * Build a resolved variable map from ordered scopes (lowest precedence first).
  * Later scopes override earlier ones — global < collection < environment.

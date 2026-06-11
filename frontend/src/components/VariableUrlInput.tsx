@@ -69,8 +69,18 @@ export function VariableUrlInput({
           parts.map((part, i) => {
             const m = part.match(ONE);
             if (!m) return <span key={i}>{part}</span>;
+            const ok = m[1] in map;
             return (
-              <span key={i} style={{ color: m[1] in map ? RESOLVED : UNRESOLVED, fontWeight: 600 }}>
+              <span
+                key={i}
+                style={{
+                  color: ok ? RESOLVED : UNRESOLVED,
+                  fontWeight: 600,
+                  // Undefined variables also get a dashed underline so they're unmistakable.
+                  textDecoration: ok ? undefined : 'underline dashed',
+                  textUnderlineOffset: 2,
+                }}
+              >
                 {part}
               </span>
             );

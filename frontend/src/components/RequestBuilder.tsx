@@ -11,7 +11,7 @@ import { KeyValueEditor } from './KeyValueEditor';
 import { CodeModal } from './CodeModal';
 import { CodeEditor } from './CodeEditor';
 import { VariableUrlInput } from './VariableUrlInput';
-import { extractTokens, buildVarMap } from '@/lib/vars';
+import { extractTokens, buildVarMap, interpolate } from '@/lib/vars';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 const BODY_MODES: BodyMode[] = ['none', 'raw', 'form-data', 'urlencoded', 'binary', 'graphql'];
@@ -43,9 +43,13 @@ function UrlVariableHint({ url }: { url: string }) {
   const missing = tokens.filter((t) => !(t in map));
 
   if (missing.length === 0) {
+    // Show the fully-resolved URL so it's clear exactly what gets sent (a 4xx/5xx
+    // here means the resolved URL itself is wrong, not that the variable failed).
+    const resolved = interpolate(url, map);
     return (
-      <div style={{ padding: '0 1rem 0.6rem', fontSize: '0.76rem', color: 'var(--ok)' }}>
-        ✓ Variables resolved: {tokens.map((t) => `{{${t}}}`).join(', ')}
+      <div style={{ padding: '0 1rem 0.6rem', fontSize: '0.76rem', color: 'var(--muted)', lineHeight: 1.5 }}>
+        <span style={{ color: 'var(--ok)' }}>✓ Sends to:</span>{' '}
+        <code style={{ color: 'var(--text)', wordBreak: 'break-all' }}>{resolved}</code>
       </div>
     );
   }
