@@ -14,11 +14,15 @@
     "build:backend": "pnpm -C backend build",
     "build": "pnpm run build:backend && pnpm run build:frontend",
     "sync:types": "cp backend/shared/src/*.ts frontend/types/ && echo 'synced backend/shared -> frontend/types'",
-    "infra:up": "docker compose -f docker-compose.yml up -d",
-    "infra:down": "docker compose -f docker-compose.yml down",
-    "infra:logs": "docker compose -f docker-compose.yml logs -f",
-    "stack:up": "docker compose -f docker-compose.full.yml up --build -d",
-    "stack:down": "docker compose -f docker-compose.full.yml down",
-    "stack:logs": "docker compose -f docker-compose.full.yml logs -f"
+    "dev": "docker compose up --build",
+    "up": "docker compose up --build -d",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "infra:up": "docker compose -f docker-compose.infra.yml up -d",
+    "infra:down": "docker compose -f docker-compose.infra.yml down",
+    "infra:logs": "docker compose -f docker-compose.infra.yml logs -f",
+    "stack:up": "docker compose up --build -d",
+    "stack:down": "docker compose down",
+    "stack:logs": "docker compose logs -f"
   }
 }

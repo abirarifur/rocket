@@ -12,7 +12,7 @@
     --sc-card-foreground: 220 20% 92%;
     --sc-popover: 220 16% 10%;
     --sc-popover-foreground: 220 20% 92%;
-    --sc-primary: 16 100% 60%;
+    --sc-primary: 221 98% 59%;
     --sc-primary-foreground: 0 0% 100%;
     --sc-secondary: 220 14% 15%;
     --sc-secondary-foreground: 220 20% 92%;
@@ -25,7 +25,7 @@
     --sc-success: 137 50% 49%;
     --sc-border: 220 14% 18%;
     --sc-input: 220 14% 18%;
-    --sc-ring: 16 100% 60%;
+    --sc-ring: 221 98% 59%;
     --radius: 0.5rem;
   }
 
@@ -36,7 +36,7 @@
     --sc-card-foreground: 222 30% 13%;
     --sc-popover: 0 0% 100%;
     --sc-popover-foreground: 222 30% 13%;
-    --sc-primary: 16 90% 53%;
+    --sc-primary: 221 98% 59%;
     --sc-primary-foreground: 0 0% 100%;
     --sc-secondary: 220 16% 95%;
     --sc-secondary-foreground: 222 30% 13%;
@@ -49,7 +49,7 @@
     --sc-success: 137 60% 30%;
     --sc-border: 220 14% 86%;
     --sc-input: 220 14% 86%;
-    --sc-ring: 16 90% 53%;
+    --sc-ring: 221 98% 59%;
   }
 }
 
@@ -61,7 +61,7 @@
   --border: #262b36;
   --text: #e6e9ef;
   --muted: #8a93a6;
-  --accent: #ff6b35;
+  --accent: #3071fd;
   --ok: #3fb950;
   --bad: #f85149;
 }
@@ -72,7 +72,7 @@
   --border: #d8dde6;
   --text: #1b1f27;
   --muted: #5a6473;
-  --accent: #e85a26;
+  --accent: #3071fd;
   --ok: #1a7f37;
   --bad: #cf222e;
 }
@@ -109,6 +109,81 @@ header {
 @media (max-width: 720px) {
   aside {
     width: 220px !important;
+  }
+}
+
+/* ── landing page helpers ──────────────────────────────────────────────── */
+
+/* Subtle dotted grid backdrop for hero/CTA sections. */
+.landing-grid {
+  background-image: radial-gradient(hsl(var(--sc-foreground) / 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+/* Brand glow blob behind the hero. */
+.landing-glow {
+  background: radial-gradient(
+    circle at 50% 50%,
+    hsl(var(--sc-primary) / 0.55),
+    hsl(var(--sc-primary) / 0) 70%
+  );
+  filter: blur(60px);
+}
+
+/* Animated gradient text for the hero headline accent. */
+.text-gradient {
+  background: linear-gradient(
+    100deg,
+    hsl(var(--sc-primary)),
+    hsl(265 90% 66%),
+    hsl(var(--sc-primary))
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 6s linear infinite;
+}
+
+@keyframes gradient-pan {
+  to {
+    background-position: 200% center;
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+.animate-float {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+/* Marquee for the logo / trust strip. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-gradient,
+  .animate-float,
+  .animate-marquee {
+    animation: none !important;
   }
 }
 

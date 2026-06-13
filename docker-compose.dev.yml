@@ -1,9 +1,17 @@
-# All-in-one stack: backing services + every app, built from source.
-# Start the whole project with:  docker compose up --build
-# (Infra-only, for running apps on the host via `pnpm dev`: docker-compose.infra.yml)
+# ── Hot-reload development stack ─────────────────────────────────────────────
+# Source code is mounted into the containers and every app runs in WATCH mode
+# (next dev / nest --watch / tsx watch). Edit a file on your host and it reloads
+# instantly — NO image rebuilds, ever.
 #
-# Host ports (remapped to avoid local collisions): web 3001, api 4000,
-# proxy 4100, postgres 5434, redis 6380, minio 9100/9101.
+#   Start:   docker compose -f docker-compose.dev.yml up
+#   Stop:    docker compose -f docker-compose.dev.yml down
+#
+# First boot is slower (installs deps into named volumes once); subsequent boots
+# are fast. node_modules live in named volumes, so nothing root-owned is written
+# back onto your host working tree.
+#
+# Host ports: web 3001, api 4000, proxy 4100, runner 4200,
+#             postgres 5434, redis 6380, minio 9100/9101.
 services:
   postgres:
     image: postgres:16-alpine
@@ -66,10 +74,11 @@ services:
       echo 'bucket ready';
       "
 
-  api:
-    build:
-      context: ./backend
-      dockerfile: api/Dockerfile
+  # All three backend services (api, proxy, runner) run together via `turbo dev`,
+  # each in watch mode. They share one workspace install.
+  backend:
+    image: node:22-alpine
+    working_dir: /app
     restart: unless-stopped
     depends_on:
       postgres:
@@ -77,7 +86,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-rocket}:${POSTGRES_PASSWORD:-rocket}@postgres:5432/${POSTGRES_DB:-rocket}?schema=public
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: http://minio:9000
@@ -86,8 +95,11 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-rocketminio}
       S3_BUCKET: ${S3_BUCKET:-rocket-artifacts}
       API_PORT: "4000"
-      PROXY_BASE_URL: http://proxy:4100
-      RUNNER_BASE_URL: http://runner:4200
+      PROXY_PORT: "4100"
+      RUNNER_PORT: "4200"
+      # Within one container the services reach each other over localhost.
+      PROXY_BASE_URL: http://localhost:4100
+      RUNNER_BASE_URL: http://localhost:4200
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-dev-encryption-key-change-me}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev-access-secret-change-me}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-me}
@@ -100,43 +112,57 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      # Reliable file-watching for mounted volumes on macOS/Windows.
+      CHOKIDAR_USEPOLLING: "true"
+      # Turbo 2 defaults to strict env mode, which hides undeclared vars (e.g.
+      # DATABASE_URL) from the dev tasks. Loose mode passes the full env through.
+      TURBO_ENV_MODE: loose
+    command: >
+      sh -c "corepack enable &&
+             pnpm install --frozen-lockfile=false &&
+             pnpm --filter @rocket/types build &&
+             pnpm --filter @rocket/api prisma:generate &&
+             pnpm --filter @rocket/api prisma:deploy &&
+             pnpm dev"
+    volumes:
+      - ./backend:/app
+      - backend_root_modules:/app/node_modules
+      - backend_api_modules:/app/api/node_modules
+      - backend_proxy_modules:/app/proxy/node_modules
+      - backend_runner_modules:/app/runner/node_modules
+      - backend_shared_modules:/app/shared/node_modules
     ports:
       - "4000:4000"
-
-  proxy:
-    build:
-      context: ./backend
-      dockerfile: proxy/Dockerfile
-    restart: unless-stopped
-    environment:
-      PROXY_PORT: "4100"
-      PROXY_MAX_RESPONSE_BYTES: ${PROXY_MAX_RESPONSE_BYTES:-10485760}
-      PROXY_TIMEOUT_MS: ${PROXY_TIMEOUT_MS:-30000}
-      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3001}
-    ports:
       - "4100:4100"
-
-  runner:
-    build:
-      context: ./backend
-      dockerfile: runner/Dockerfile
-    restart: unless-stopped
-    environment:
-      RUNNER_PORT: "4200"
-      PROXY_BASE_URL: http://proxy:4100
-      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3001}
-    ports:
       - "4200:4200"
 
   web:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        # Browser talks to the API via the host-published port.
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000}
+    image: node:22-alpine
+    working_dir: /app
     restart: unless-stopped
     depends_on:
-      - api
+      - backend
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000}
+      # Reliable hot-reload for mounted volumes on macOS/Windows.
+      WATCHPACK_POLLING: "true"
+    command: >
+      sh -c "corepack enable &&
+             pnpm install --frozen-lockfile=false &&
+             pnpm dev"
+    volumes:
+      - ./frontend:/app
+      - web_node_modules:/app/node_modules
+      - web_next_cache:/app/.next
     ports:
       - "3001:3001"
+
+volumes:
+  backend_root_modules:
+  backend_api_modules:
+  backend_proxy_modules:
+  backend_runner_modules:
+  backend_shared_modules:
+  web_node_modules:
+  web_next_cache:
