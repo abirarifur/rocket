@@ -19,6 +19,7 @@ const sample: InternalCollection = {
           order: 0,
           request: {
             name: 'Get user',
+            kind: 'http',
             method: 'GET',
             url: '{{base_url}}/users',
             params: [{ key: 'page', value: '1', enabled: true }],
@@ -34,6 +35,7 @@ const sample: InternalCollection = {
           order: 1,
           request: {
             name: 'Create user',
+            kind: 'http',
             method: 'POST',
             url: '{{base_url}}/users',
             params: [],

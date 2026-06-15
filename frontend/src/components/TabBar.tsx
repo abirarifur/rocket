@@ -14,6 +14,13 @@ const METHOD_COLOR: Record<string, string> = {
   OPTIONS: '#8a93a6',
 };
 
+/** Non-HTTP request protocols get a short badge instead of a method. */
+const PROTOCOL_BADGE: Record<string, { label: string; color: string }> = {
+  graphql: { label: 'GQL', color: '#e535ab' },
+  websocket: { label: 'WS', color: '#3fb950' },
+  socketio: { label: 'IO', color: '#dd1b16' },
+};
+
 /** Open-request tabs, like Postman: switch, close, and open new tabs. */
 export function TabBar() {
   const { tabs, activeTabId, setActiveTab, closeTab, newTab } = useApp();
@@ -36,6 +43,10 @@ export function TabBar() {
               <Layers className="h-3.5 w-3.5 shrink-0 text-primary" />
             ) : t.kind === 'collection' ? (
               <Box className="h-3.5 w-3.5 shrink-0 text-primary" />
+            ) : t.protocol && PROTOCOL_BADGE[t.protocol] ? (
+              <span className="text-[0.6rem] font-bold shrink-0" style={{ color: PROTOCOL_BADGE[t.protocol]!.color }}>
+                {PROTOCOL_BADGE[t.protocol]!.label}
+              </span>
             ) : (
               <span className="text-[0.6rem] font-bold shrink-0" style={{ color: METHOD_COLOR[t.method] ?? 'var(--muted)' }}>
                 {t.method}

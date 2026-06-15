@@ -31,6 +31,7 @@ describe('interpolateRequest', () => {
   it('interpolates url, params, headers, body and auth', () => {
     const def: RequestDefinition = {
       name: 't',
+      kind: 'http',
       method: 'GET',
       url: '{{base}}/items',
       params: [{ key: 'q', value: '{{term}}', enabled: true }],

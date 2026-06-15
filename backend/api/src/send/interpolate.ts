@@ -50,15 +50,39 @@ export function interpolateRequest(
           }
         : def.body.graphql,
     },
-    auth: {
-      ...def.auth,
-      basic: def.auth.basic
-        ? { username: s(def.auth.basic.username), password: s(def.auth.basic.password) }
-        : def.auth.basic,
-      bearer: def.auth.bearer ? { token: s(def.auth.bearer.token) } : def.auth.bearer,
-      apikey: def.auth.apikey
-        ? { ...def.auth.apikey, key: s(def.auth.apikey.key), value: s(def.auth.apikey.value) }
-        : def.auth.apikey,
-    },
+    auth: interpolateAuth(def.auth, vars),
   };
+}
+
+/** Interpolate {{variables}} in every string field of each auth config block. */
+function interpolateAuth(
+  auth: RequestDefinition['auth'],
+  vars: Record<string, string>,
+): RequestDefinition['auth'] {
+  const next = { ...auth } as Record<string, unknown>;
+  const interpObject = (obj: unknown): unknown => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      out[k] = typeof v === 'string' ? interpolate(v, vars) : v;
+    }
+    return out;
+  };
+  for (const block of [
+    'basic',
+    'bearer',
+    'apikey',
+    'jwt',
+    'oauth2',
+    'oauth1',
+    'awsv4',
+    'hawk',
+    'digest',
+    'ntlm',
+    'edgegrid',
+    'asap',
+  ] as const) {
+    if (next[block]) next[block] = interpObject(next[block]);
+  }
+  return next as RequestDefinition['auth'];
 }

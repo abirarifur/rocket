@@ -6,6 +6,7 @@ import type { RequestAuth, Variable } from '@rocket/types';
 import { useApp } from '@/store/appStore';
 import { canEdit } from '@/lib/teams-api';
 import { VariablesEditor } from './VariablesEditor';
+import { AuthEditor } from './AuthEditor';
 
 const input: React.CSSProperties = {
   background: 'var(--bg)',
@@ -176,45 +177,12 @@ function AuthorizationTab({ collectionId, editable }: { collectionId: string; ed
         <strong>Inherit from collection</strong>. You can override it per request. Values may use{' '}
         <code>{'{{variables}}'}</code> (e.g. <code>{'{{access_token}}'}</code>).
       </p>
-      <select
-        value={auth.type === 'inherit' ? 'none' : auth.type}
+      <AuthEditor
+        auth={auth.type === 'inherit' ? { ...auth, type: 'none' } : auth}
+        onChange={set}
         disabled={!editable}
-        onChange={(e) => set({ ...auth, type: e.target.value as RequestAuth['type'] })}
-        style={input}
-      >
-        <option value="none">No Auth</option>
-        <option value="basic">Basic</option>
-        <option value="bearer">Bearer Token</option>
-        <option value="apikey">API Key</option>
-      </select>
-
-      {auth.type === 'basic' && (
-        <>
-          <input style={input} placeholder="Username" value={auth.basic?.username ?? ''} disabled={!editable}
-            onChange={(e) => set({ ...auth, basic: { username: e.target.value, password: auth.basic?.password ?? '' } })} />
-          <input style={input} type="password" placeholder="Password" value={auth.basic?.password ?? ''} disabled={!editable}
-            onChange={(e) => set({ ...auth, basic: { username: auth.basic?.username ?? '', password: e.target.value } })} />
-        </>
-      )}
-
-      {auth.type === 'bearer' && (
-        <input style={input} placeholder="Token (e.g. {{access_token}})" value={auth.bearer?.token ?? ''} disabled={!editable}
-          onChange={(e) => set({ ...auth, bearer: { token: e.target.value } })} />
-      )}
-
-      {auth.type === 'apikey' && (
-        <>
-          <input style={input} placeholder="Key" value={auth.apikey?.key ?? ''} disabled={!editable}
-            onChange={(e) => set({ ...auth, apikey: { key: e.target.value, value: auth.apikey?.value ?? '', in: auth.apikey?.in ?? 'header' } })} />
-          <input style={input} placeholder="Value" value={auth.apikey?.value ?? ''} disabled={!editable}
-            onChange={(e) => set({ ...auth, apikey: { key: auth.apikey?.key ?? '', value: e.target.value, in: auth.apikey?.in ?? 'header' } })} />
-          <select style={input} value={auth.apikey?.in ?? 'header'} disabled={!editable}
-            onChange={(e) => set({ ...auth, apikey: { key: auth.apikey?.key ?? '', value: auth.apikey?.value ?? '', in: e.target.value as 'header' | 'query' } })}>
-            <option value="header">Add to Header</option>
-            <option value="query">Add to Query Params</option>
-          </select>
-        </>
-      )}
+        allowInherit={false}
+      />
 
       <SaveRow status={status} onSave={save} editable={editable} />
     </div>

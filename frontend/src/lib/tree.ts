@@ -2,6 +2,21 @@ import type { CollectionNode, FolderNode, RequestNode, RequestDefinition } from 
 
 /** Immutable helpers for the folder/request tree stored on a collection. */
 
+/** Flatten all folders into a depth-tagged list (for folder pickers). */
+export function flattenFolders(
+  tree: CollectionNode[],
+  depth = 0,
+): { id: string; name: string; depth: number }[] {
+  const out: { id: string; name: string; depth: number }[] = [];
+  for (const node of tree) {
+    if (node.type === 'folder') {
+      out.push({ id: node.id, name: node.name, depth });
+      out.push(...flattenFolders(node.children, depth + 1));
+    }
+  }
+  return out;
+}
+
 export function findRequest(tree: CollectionNode[], nodeId: string): RequestNode | null {
   for (const node of tree) {
     if (node.type === 'request' && node.id === nodeId) return node;
@@ -152,6 +167,7 @@ export function newId(prefix: string): string {
 export function emptyRequest(name = 'Untitled Request'): RequestDefinition {
   return {
     name,
+    kind: 'http',
     method: 'GET',
     url: '',
     params: [],

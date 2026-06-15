@@ -14,6 +14,7 @@ const storage = {
 
 const base = (body: RequestDefinition['body']): RequestDefinition => ({
   name: 't',
+  kind: 'http',
   method: 'POST',
   url: 'https://x.test',
   params: [],

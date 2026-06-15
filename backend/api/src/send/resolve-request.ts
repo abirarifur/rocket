@@ -1,4 +1,5 @@
 import type { ProxyRequest, RequestDefinition } from '@rocket/types';
+import { applyAwsV4, applyHawk, applyJwt, applyOauth1, applyOauth2 } from './auth-sign';
 
 const RAW_CONTENT_TYPE: Record<string, string> = {
   json: 'application/json',
@@ -94,8 +95,30 @@ export function resolveRequest(def: RequestDefinition): ProxyRequest {
       }
       break;
     }
+    case 'jwt': {
+      if (def.auth.jwt) url = applyJwt(headers, url, def.auth.jwt);
+      break;
+    }
+    case 'oauth2': {
+      if (def.auth.oauth2) url = applyOauth2(headers, url, def.auth.oauth2);
+      break;
+    }
+    case 'oauth1': {
+      if (def.auth.oauth1) url = applyOauth1(headers, url, def.method, body, def.auth.oauth1);
+      break;
+    }
+    case 'awsv4': {
+      if (def.auth.awsv4) applyAwsV4(headers, url, def.method, body, def.auth.awsv4);
+      break;
+    }
+    case 'hawk': {
+      if (def.auth.hawk) applyHawk(headers, url, def.method, def.auth.hawk);
+      break;
+    }
     default:
-      break; // none / inherit
+      // none / inherit, plus schemes that need a round-trip and are stored only:
+      // digest, ntlm, edgegrid, asap.
+      break;
   }
 
   return { method: def.method, url, headers, body, bodyEncoding: 'utf8', followRedirects: true };

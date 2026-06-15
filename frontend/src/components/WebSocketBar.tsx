@@ -22,6 +22,12 @@ interface Msg {
 /** A WebSocket connection tester (connect, send, receive). */
 export function WebSocketBar() {
   const [open, setOpen] = useState(false);
+  // Allow the sidebar "New ▸ WebSocket" menu to open this tester.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener('rocket:open-websocket', onOpen);
+    return () => window.removeEventListener('rocket:open-websocket', onOpen);
+  }, []);
   return (
     <>
       <button onClick={() => setOpen(true)} style={{ ...ctrl, cursor: 'pointer' }} className="inline-flex items-center gap-1.5" title="WebSocket tester">

@@ -10,6 +10,8 @@ import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { EnvironmentEditor } from '@/components/EnvironmentEditor';
 import { CollectionEditor } from '@/components/CollectionEditor';
+import { WebSocketPanel } from '@/components/WebSocketPanel';
+import { SocketIOPanel } from '@/components/SocketIOPanel';
 import { EnvironmentBar } from '@/components/EnvironmentBar';
 import { WorkspaceBar } from '@/components/WorkspaceBar';
 import { MembersBar } from '@/components/MembersBar';
@@ -20,6 +22,7 @@ import { CookiesBar } from '@/components/CookiesBar';
 import { WebSocketBar } from '@/components/WebSocketBar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { DialogHost } from '@/components/dialogs';
+import { SaveDialogHost } from '@/components/SaveButton';
 
 export default function AppPage() {
   const router = useRouter();
@@ -79,7 +82,10 @@ export default function AppPage() {
         void useApp.getState().send();
       } else if (e.key.toLowerCase() === 's') {
         e.preventDefault();
-        void useApp.getState().saveActive();
+        const st = useApp.getState();
+        // Unsaved drafts (e.g. a new WebSocket/Socket.IO request) open the Save dialog.
+        if (st.draft && !st.activeNodeId) window.dispatchEvent(new Event('rocket:open-save'));
+        else void st.saveActive();
       } else if (e.key.toLowerCase() === 'k') {
         e.preventDefault();
         window.dispatchEvent(new Event('rocket:focus-search'));
@@ -154,6 +160,7 @@ export default function AppPage() {
         </main>
       </div>
       <DialogHost />
+      <SaveDialogHost />
     </div>
   );
 }
@@ -161,9 +168,14 @@ export default function AppPage() {
 /** Renders the active tab's content: environment editor, collection settings, or the request builder. */
 function MainPanel() {
   const activeTab = useApp((s) => s.tabs.find((t) => t.id === s.activeTabId) ?? null);
+  const protocol = useApp((s) => s.draft?.kind ?? 'http');
   if (activeTab?.kind === 'environment') return <EnvironmentEditor />;
   if (activeTab?.kind === 'collection' && activeTab.collectionId)
     return <CollectionEditor collectionId={activeTab.collectionId} />;
+  // Long-lived connection requests get their own panels (no proxy round-trip).
+  if (protocol === 'websocket') return <WebSocketPanel />;
+  if (protocol === 'socketio') return <SocketIOPanel />;
+  // http + graphql both use the HTTP request builder (GraphQL via the graphql body).
   return (
     <>
       <RequestBuilder />

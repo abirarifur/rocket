@@ -192,6 +192,7 @@ function requestFromItem(item: PostmanItem): RequestDefinition {
 
   return {
     name: item.name ?? 'Imported Request',
+    kind: 'http',
     method: (r.method ?? 'GET').toUpperCase() as RequestDefinition['method'],
     url,
     params: query.map((q) => ({ key: q.key, value: q.value ?? '', enabled: !q.disabled })),

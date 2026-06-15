@@ -11,6 +11,7 @@ import { ImportModal } from './ImportModal';
 import { OpsModal } from './OpsModal';
 import { CommentsModal } from './CommentsModal';
 import { ContextMenu, type MenuItem } from './ContextMenu';
+import { NewMenu } from './NewMenu';
 import { promptDialog, confirmDialog } from './dialogs';
 import { exportCollection } from '@/lib/interop-api';
 
@@ -34,6 +35,19 @@ const METHOD_COLOR: Record<string, string> = {
   HEAD: '#8a93a6',
   OPTIONS: '#8a93a6',
 };
+
+/** Short badge + colour for non-HTTP request protocols in the tree. */
+const PROTOCOL_BADGE: Record<string, { label: string; color: string }> = {
+  graphql: { label: 'GQL', color: '#e535ab' },
+  websocket: { label: 'WS', color: '#3fb950' },
+  socketio: { label: 'IO', color: '#dd1b16' },
+};
+
+/** Badge text/colour for a request node — its protocol, falling back to HTTP method. */
+function requestBadge(req: { kind?: string; method: string }): { label: string; color: string } {
+  const p = req.kind && req.kind !== 'http' ? PROTOCOL_BADGE[req.kind] : undefined;
+  return p ?? { label: req.method, color: METHOD_COLOR[req.method] ?? 'var(--muted)' };
+}
 
 type OpenMenu = (e: React.MouseEvent, items: MenuItem[]) => void;
 
@@ -121,13 +135,13 @@ function TreeNodes({
               >
                 <span
                   style={{
-                    color: METHOD_COLOR[node.request.method] ?? 'var(--muted)',
+                    color: requestBadge(node.request).color,
                     fontSize: '0.62rem',
                     fontWeight: 700,
                     width: 38,
                   }}
                 >
-                  {node.request.method}
+                  {requestBadge(node.request).label}
                 </span>
                 <span style={{ flex: 1, fontSize: '0.85rem' }}>{node.request.name}</span>
                 {editable && <Kebab onClick={(e) => openMenu(e, requestItems(node))} />}
@@ -184,7 +198,6 @@ export function Sidebar() {
     cache,
     role,
     toggleCollection,
-    createCollection,
     addRequest,
     addFolder,
     deleteCollection,
@@ -276,17 +289,7 @@ export function Sidebar() {
             >
               <Download size={16} />
             </button>
-            <button
-              onClick={async () => {
-                const name = await promptDialog({ title: 'New collection', label: 'Collection name', defaultValue: 'My Collection', placeholder: 'My Collection' });
-                if (name) void createCollection(name);
-              }}
-              style={{ ...miniBtn, color: 'var(--accent)' }}
-              className="inline-flex items-center"
-              title="New collection"
-            >
-              <Plus size={18} />
-            </button>
+            <NewMenu />
           </>
         )}
       </div>

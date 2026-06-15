@@ -4,6 +4,7 @@ import { resolveRequest } from './resolve-request';
 
 const base = (over: Partial<RequestDefinition> = {}): RequestDefinition => ({
   name: 't',
+  kind: 'http',
   method: 'GET',
   url: 'https://api.test/x',
   params: [],

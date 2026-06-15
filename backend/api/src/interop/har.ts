@@ -29,6 +29,7 @@ export function fromHar(har: Har): InternalCollection {
       order: 0,
       request: {
         name: `${r.method ?? 'GET'} ${stripQuery(r.url ?? '')}`,
+        kind: 'http',
         method: (r.method ?? 'GET').toUpperCase() as RequestDefinition['method'],
         url: r.url ?? '',
         params: (r.queryString ?? []).map((q) => ({ key: q.name, value: q.value, enabled: true })),

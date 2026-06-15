@@ -4,6 +4,7 @@ import type { RunScriptRequest } from '@rocket/types';
 
 const baseReq = {
   name: 't',
+  kind: 'http' as const,
   method: 'GET' as const,
   url: 'https://x.test',
   params: [],

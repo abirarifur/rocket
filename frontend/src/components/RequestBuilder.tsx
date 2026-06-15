@@ -8,6 +8,8 @@ import { canEdit } from '@/lib/teams-api';
 import { uploadFile } from '@/lib/app-api';
 import type { FormField } from '@rocket/types';
 import { KeyValueEditor } from './KeyValueEditor';
+import { AuthEditor } from './AuthEditor';
+import { SaveButton } from './SaveButton';
 import { CodeModal } from './CodeModal';
 import { CodeEditor } from './CodeEditor';
 import { VariableUrlInput } from './VariableUrlInput';
@@ -67,7 +69,8 @@ function UrlVariableHint({ url }: { url: string }) {
 
 export function RequestBuilder() {
   const { draft, updateDraft, send, sending, role } = useApp();
-  const [tab, setTab] = useState<Tab>('params');
+  // GraphQL requests open on the Body (query) editor; others start on Params.
+  const [tab, setTab] = useState<Tab>(draft?.kind === 'graphql' ? 'body' : 'params');
   const [codeOpen, setCodeOpen] = useState(false);
   const readOnly = !canEdit(role);
 
@@ -126,6 +129,7 @@ export function RequestBuilder() {
         >
           <Code2 size={16} />
         </button>
+        <SaveButton />
         <button
           onClick={() => void send()}
           disabled={sending || !draft.url}
@@ -181,7 +185,9 @@ export function RequestBuilder() {
           <KeyValueEditor rows={draft.headers} onChange={(headers) => updateDraft({ headers })} />
         )}
         {tab === 'body' && <BodyEditor />}
-        {tab === 'auth' && <AuthEditor />}
+        {tab === 'auth' && (
+          <AuthEditor auth={draft.auth} onChange={(auth) => updateDraft({ auth })} disabled={readOnly} />
+        )}
         {tab === 'pre' && (
           <ScriptEditor
             value={draft.preRequestScript ?? ''}
@@ -406,99 +412,3 @@ function BodyEditor() {
   );
 }
 
-function AuthEditor() {
-  const { draft, updateDraft } = useApp();
-  if (!draft) return null;
-  const auth = draft.auth;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxWidth: 460 }}>
-      <select
-        value={auth.type}
-        onChange={(e) => updateDraft({ auth: { ...auth, type: e.target.value as typeof auth.type } })}
-        style={input}
-      >
-        <option value="inherit">Inherit from collection</option>
-        <option value="none">No Auth</option>
-        <option value="basic">Basic</option>
-        <option value="bearer">Bearer Token</option>
-        <option value="apikey">API Key</option>
-      </select>
-
-      {auth.type === 'inherit' && (
-        <p style={{ color: 'var(--muted)', fontSize: '0.8rem', lineHeight: 1.6 }}>
-          This request uses the authorization configured on its collection (open the collection&apos;s
-          <strong> Authorization</strong> tab to set it). Choose another type above to override it here.
-        </p>
-      )}
-
-      {auth.type === 'basic' && (
-        <>
-          <input
-            style={input}
-            placeholder="Username"
-            value={auth.basic?.username ?? ''}
-            onChange={(e) =>
-              updateDraft({ auth: { ...auth, basic: { username: e.target.value, password: auth.basic?.password ?? '' } } })
-            }
-          />
-          <input
-            style={input}
-            type="password"
-            placeholder="Password"
-            value={auth.basic?.password ?? ''}
-            onChange={(e) =>
-              updateDraft({ auth: { ...auth, basic: { username: auth.basic?.username ?? '', password: e.target.value } } })
-            }
-          />
-        </>
-      )}
-
-      {auth.type === 'bearer' && (
-        <input
-          style={input}
-          placeholder="Token"
-          value={auth.bearer?.token ?? ''}
-          onChange={(e) => updateDraft({ auth: { ...auth, bearer: { token: e.target.value } } })}
-        />
-      )}
-
-      {auth.type === 'apikey' && (
-        <>
-          <input
-            style={input}
-            placeholder="Key"
-            value={auth.apikey?.key ?? ''}
-            onChange={(e) =>
-              updateDraft({
-                auth: { ...auth, apikey: { key: e.target.value, value: auth.apikey?.value ?? '', in: auth.apikey?.in ?? 'header' } },
-              })
-            }
-          />
-          <input
-            style={input}
-            placeholder="Value"
-            value={auth.apikey?.value ?? ''}
-            onChange={(e) =>
-              updateDraft({
-                auth: { ...auth, apikey: { key: auth.apikey?.key ?? '', value: e.target.value, in: auth.apikey?.in ?? 'header' } },
-              })
-            }
-          />
-          <select
-            value={auth.apikey?.in ?? 'header'}
-            onChange={(e) =>
-              updateDraft({
-                auth: { ...auth, apikey: { key: auth.apikey?.key ?? '', value: auth.apikey?.value ?? '', in: e.target.value as 'header' | 'query' } },
-              })
-            }
-            style={input}
-          >
-            <option value="header">Add to Header</option>
-            <option value="query">Add to Query Params</option>
-          </select>
-        </>
-      )}
-    </div>
-  );
-}

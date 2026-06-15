@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { CollectionNode, RequestDefinition, Variable } from '@rocket/types';
+import type { CollectionNode, RequestDefinition, RequestKind, Variable } from '@rocket/types';
 import * as api from '@/lib/app-api';
 import * as envApi from '@/lib/env-api';
 import { canEdit, type Role } from '@/lib/teams-api';
@@ -31,6 +31,8 @@ export interface Tab {
   nodeId: string | null;
   label: string;
   method: string;
+  /** Protocol of a request tab (drives the badge + which editor renders). */
+  protocol?: RequestKind;
 }
 
 interface TabSnapshot {
@@ -68,6 +70,7 @@ interface AppState {
   setActiveTab: (id: string) => void;
   closeTab: (id: string) => void;
   newTab: () => void;
+  newRequestTab: (preset?: Partial<RequestDefinition>) => void;
   openEnvironmentTab: () => void;
   openCollectionTab: (collectionId: string) => Promise<void>;
 
@@ -101,7 +104,9 @@ interface AppState {
   saveActive: () => Promise<void>;
   send: () => Promise<void>;
 
-  createCollection: (name: string) => Promise<void>;
+  createCollection: (name: string) => Promise<string>;
+  /** Persist the active (unsaved) draft as a new request in a collection/folder. */
+  saveDraftToCollection: (collectionId: string, folderId: string | null, name?: string) => Promise<void>;
   addRequest: (collectionId: string, folderId: string | null) => Promise<void>;
   addFolder: (collectionId: string, folderId: string | null) => Promise<void>;
   rename: (collectionId: string, nodeId: string, name: string) => Promise<void>;
@@ -310,7 +315,7 @@ export const useApp = create<AppState>((set, get) => ({
       return;
     }
     stashActive(get, set);
-    const tab: Tab = { id: newId('tab'), kind: 'request', collectionId, nodeId, label: node.request.name, method: node.request.method };
+    const tab: Tab = { id: newId('tab'), kind: 'request', collectionId, nodeId, label: node.request.name, method: node.request.method, protocol: node.request.kind ?? 'http' };
     set({
       tabs: [...get().tabs, tab],
       activeTabId: tab.id,
@@ -330,7 +335,7 @@ export const useApp = create<AppState>((set, get) => ({
   /** Load a request into a new tab as an ephemeral draft (e.g. from history). */
   loadDraft(request) {
     stashActive(get, set);
-    const tab: Tab = { id: newId('tab'), kind: 'request', collectionId: null, nodeId: null, label: request.name || 'Untitled', method: request.method };
+    const tab: Tab = { id: newId('tab'), kind: 'request', collectionId: null, nodeId: null, label: request.name || 'Untitled', method: request.method, protocol: request.kind ?? 'http' };
     set({
       tabs: [...get().tabs, tab],
       activeTabId: tab.id,
@@ -346,14 +351,28 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   newTab() {
+    get().newRequestTab();
+  },
+
+  /** Open a new request tab, optionally pre-filled (e.g. a GraphQL request from the New menu). */
+  newRequestTab(preset) {
     stashActive(get, set);
-    const tab: Tab = { id: newId('tab'), kind: 'request', collectionId: null, nodeId: null, label: 'Untitled', method: 'GET' };
+    const draft: RequestDefinition = { ...emptyRequest(), ...(preset ?? {}) };
+    const tab: Tab = {
+      id: newId('tab'),
+      kind: 'request',
+      collectionId: null,
+      nodeId: null,
+      label: draft.name || 'Untitled',
+      method: draft.method,
+      protocol: draft.kind ?? 'http',
+    };
     set({
       tabs: [...get().tabs, tab],
       activeTabId: tab.id,
       activeCollectionId: null,
       activeNodeId: null,
-      draft: emptyRequest(),
+      draft,
       response: null,
       sendError: null,
       testResults: [],
@@ -431,7 +450,9 @@ export const useApp = create<AppState>((set, get) => ({
     if (!draft) return;
     const next = { ...draft, ...patch };
     const tabs = get().tabs.map((t) =>
-      t.id === get().activeTabId ? { ...t, label: next.name || 'Untitled', method: next.method } : t,
+      t.id === get().activeTabId
+        ? { ...t, label: next.name || 'Untitled', method: next.method, protocol: next.kind ?? 'http' }
+        : t,
     );
     set({ draft: next, tabs });
     if (saveTimer) clearTimeout(saveTimer);
@@ -492,7 +513,7 @@ export const useApp = create<AppState>((set, get) => ({
 
   async createCollection(name) {
     const { workspaceId } = get();
-    if (!workspaceId) return;
+    if (!workspaceId) return '';
     const full = await api.createCollection(workspaceId, name);
     set({
       collections: [
@@ -501,6 +522,34 @@ export const useApp = create<AppState>((set, get) => ({
       ],
       cache: { ...get().cache, [full.id]: full },
       expanded: { ...get().expanded, [full.id]: true },
+    });
+    return full.id;
+  },
+
+  async saveDraftToCollection(collectionId, folderId, name) {
+    const draft = get().draft;
+    if (!draft) return;
+    await get().loadCollection(collectionId);
+    const col = get().cache[collectionId];
+    if (!col) return;
+    const finalName = (name ?? draft.name).trim() || 'Untitled Request';
+    const request = { ...draft, name: finalName };
+    const node = { id: newId('req'), type: 'request' as const, order: 0, request };
+    const tree = addNode(col.tree as Tree, folderId, node);
+    set({
+      cache: { ...get().cache, [collectionId]: { ...col, tree } },
+      expanded: { ...get().expanded, [collectionId]: true },
+    });
+    await api.updateCollection(collectionId, { tree });
+    // Rebind the active tab to the freshly-saved node so later edits auto-save.
+    const activeId = get().activeTabId;
+    set({
+      activeCollectionId: collectionId,
+      activeNodeId: node.id,
+      draft: request,
+      tabs: get().tabs.map((t) =>
+        t.id === activeId ? { ...t, collectionId, nodeId: node.id, label: finalName } : t,
+      ),
     });
   },
 
@@ -516,6 +565,18 @@ export const useApp = create<AppState>((set, get) => ({
 
   async rename(collectionId, nodeId, name) {
     await mutateTree(get, set, collectionId, (tree) => renameNode(tree, nodeId, name));
+    // Keep any open tab label — and the active draft — in sync with the renamed node,
+    // so the tab title follows the sidebar instead of showing the old name.
+    const s = get();
+    set({
+      tabs: s.tabs.map((t) =>
+        t.collectionId === collectionId && t.nodeId === nodeId ? { ...t, label: name } : t,
+      ),
+      draft:
+        s.activeCollectionId === collectionId && s.activeNodeId === nodeId && s.draft
+          ? { ...s.draft, name }
+          : s.draft,
+    });
   },
 
   async moveNode(collectionId, dragId, targetId) {
@@ -553,10 +614,22 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   async createTeamWorkspace(name) {
-    const { teamId } = get();
+    const { teamId, workspaces, role } = get();
     if (!teamId) return;
     const ws = await teamsApi.createWorkspace(teamId, name, 'TEAM');
-    await get().init(); // refresh workspace list
+    // Insert the new workspace locally and switch to it directly. Re-fetching the
+    // list here can miss the just-created row if the read replica lags behind the
+    // write, which left the modal "submitted" but nothing happening.
+    const teamName = workspaces.find((w) => w.teamId === teamId)?.teamName ?? '';
+    const summary: api.WorkspaceSummary = {
+      id: ws.id,
+      name: ws.name,
+      visibility: 'TEAM',
+      teamId,
+      teamName,
+      role: role ?? 'ADMIN',
+    };
+    set({ workspaces: [...workspaces.filter((w) => w.id !== ws.id), summary] });
     await get().switchWorkspace(ws.id);
   },
 

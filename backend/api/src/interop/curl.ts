@@ -31,6 +31,7 @@ export function parseCurl(command: string): RequestDefinition {
   const tokens = tokenize(command.trim());
   const req: RequestDefinition = {
     name: 'Imported from cURL',
+    kind: 'http',
     method: 'GET',
     url: '',
     params: [],

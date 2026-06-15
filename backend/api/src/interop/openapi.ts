@@ -84,6 +84,7 @@ function buildRequest(method: string, path: string, op: OpenApiOp): RequestDefin
 
   return {
     name: op.summary ?? op.operationId ?? `${method} ${path}`,
+    kind: 'http',
     method: method as RequestDefinition['method'],
     url: `{{baseUrl}}${path}`,
     params: queryParams.map((p) => ({ key: p.name ?? '', value: example(p), enabled: true })),
